@@ -1,0 +1,282 @@
+/* ==========================================
+   1. RESET BÁSICO E CONFIGURAÇÃO DO MAPA
+========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    height: 100%;
+    width: 100%;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    /* Fonte moderna e legível */
+    overflow: hidden;
+    /* Evita barras de scroll na página inteira */
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
+    /* O mapa fica na camada de fundo */
+}
+
+
+/* ==========================================
+   2. BARRA DE PESQUISA (PÍLULA FLUTUANTE)
+========================================== */
+.painel-controle {
+    position: absolute;
+    top: 25px;
+    left: 50px;
+    z-index: 1000;
+}
+
+.busca-container {
+    background: rgba(18, 71, 43, 0.75);
+    /* Verde Escuro Translúcido */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    /* Borda fina para dar brilho de vidro */
+    border-radius: 50px;
+    /* Formato de Pílula (Totalmente arredondado) */
+    padding: 2px 15px;
+    /* Mais fino e elegante */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    position: relative;
+    width: 360px;
+    /* Mais comprido para caber bem o texto */
+    transition: all 0.3s ease;
+}
+
+/* Efeito quando o usuário clica na busca */
+.busca-container:focus-within {
+    background: rgba(18, 71, 43, 0.95);
+    border-color: #ffc107;
+    /* Borda amarela da Univille acende no foco */
+    box-shadow: 0 8px 32px rgba(255, 193, 7, 0.25);
+    transform: translateY(-2px);
+    /* Dá uma leve "levantada" */
+}
+
+/* O campo de input agora é INVISÍVEL, o texto flutua no vidro verde */
+#busca-sala {
+    width: 100%;
+    padding: 14px 10px 14px 35px;
+    border: none;
+    background-color: transparent;
+    /* Pulo do gato: Fundo invisível! */
+    /* Ícone de lupa BRANCO injetado no CSS */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="%23ffffff" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: 5px center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    /* Texto branco */
+    outline: none;
+    letter-spacing: 0.5px;
+}
+
+/* Placeholder (texto de dica) também translúcido */
+#busca-sala::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+}
+
+
+/* ==========================================
+   3. RESULTADOS DA PESQUISA (ESTILO CARDS)
+========================================== */
+#lista-resultados {
+    position: absolute;
+    top: calc(100% + 12px);
+    /* Afasta um pouquinho da pílula */
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    list-style-type: none;
+    border-radius: 16px;
+    /* Arredondado combinando com o tema */
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ... mantenha o restante do código da lista-resultados (os li, hover, etc) como já estava ... */
+.resultados-oculto {
+    display: none !important;
+}
+
+/* Cada item da lista */
+#lista-resultados li {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+#lista-resultados li:last-child {
+    border-bottom: none;
+}
+
+#lista-resultados li:hover {
+    background-color: #f4f8f5;
+    /* Verde muito claro ao passar o rato */
+}
+
+/* Organização visual do ícone e textos na pesquisa */
+.resultado-icone {
+    font-size: 22px;
+    margin-right: 12px;
+    background: #eef2f0;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.resultado-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.resultado-nome {
+    font-size: 14px;
+    font-weight: 800;
+    color: #12472b;
+    /* Verde Univille */
+}
+
+.resultado-detalhe {
+    font-size: 11px;
+    color: #777;
+    font-weight: 600;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+
+/* ==========================================
+   4. PAINEL DE CAMADAS DO MAPA (Canto Superior Direito)
+========================================== */
+/* Injetando o Glassmorphism no menu nativo do Leaflet */
+.leaflet-control-layers {
+    background: rgba(18, 71, 43, 0.75) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: #ffffff !important;
+    padding: 10px 15px !important;
+}
+
+/* Textos do menu de camadas */
+.leaflet-control-layers label {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    margin: 6px 0;
+    color: #ffffff !important;
+}
+
+/* Linha divisória do menu */
+.leaflet-control-layers-separator {
+    border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+    margin: 10px 0 !important;
+}
+
+
+/* ==========================================
+   5. RÓTULOS (TEXTOS E ÍCONES DENTRO DO MAPA)
+========================================== */
+.rotulo-sala {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #ffffff;
+    /* Texto branco */
+    font-weight: 900;
+    font-size: 11px;
+    /* Sombra preta densa para criar contraste em qualquer fundo */
+    text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+    pointer-events: none;
+    /* Deixa o clique "atravessar" para o popup abrir */
+}
+
+/* Remove a setinha em forma de triângulo padrão do Leaflet */
+.rotulo-sala::before {
+    display: none !important;
+}
+
+/* Estilo específico para o ícone de casa de banho ficar grande e sem sombra */
+.rotulo-banheiro {
+    font-size: 20px !important;
+    text-shadow: none !important;
+}
+
+
+/* ==========================================
+   6. POPUPS DE INFORMAÇÃO (GLASSMORPHISM BRANCO)
+========================================== */
+/* A caixa principal do balão */
+.leaflet-popup-content-wrapper {
+    background: rgba(255, 255, 255, 0.85) !important;
+    /* Branco translúcido */
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+    color: #333333 !important;
+    /* Texto escuro para leitura perfeita */
+}
+
+/* O texto e espaçamento interno */
+.leaflet-popup-content {
+    color: #333333 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 15px !important;
+}
+
+/* O título do Popup (Nome da Sala) */
+.leaflet-popup-content h3 {
+    color: #12472b !important;
+    /* Verde Univille para manter a identidade */
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* A setinha (triângulo) que aponta para baixo em direção à sala */
+.leaflet-popup-tip {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* O botão de fechar (X) no canto superior */
+.leaflet-popup-close-button {
+    color: #555555 !important;
+    font-weight: bold !important;
+    padding: 5px !important;
+}
+
+.leaflet-popup-close-button:hover {
+    color: #e74c3c !important;
+    /* Fica vermelho ao passar o rato */
+    background: transparent !important;
+}
+
+/* Linha divisória (hr) dentro do popup */
+.leaflet-popup-content hr {
+    border: none !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    margin: 8px 0 !important;
+}
