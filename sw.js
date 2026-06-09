@@ -11,11 +11,19 @@ const ASSETS = [
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
-// Instalação: Baixa tudo para o cache
+// Instalação: Baixa tudo para o cache (à prova de falhas)
 self.addEventListener('install', (evento) => {
     evento.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            // Em vez de addAll (que falha e cancela o PWA se faltar 1 arquivo), 
+            // adicionamos um por um.
+            for (let asset of ASSETS) {
+                try {
+                    await cache.add(asset);
+                } catch (erro) {
+                    console.error('Falha ao cachear o arquivo:', asset, erro);
+                }
+            }
         })
     );
 });
