@@ -640,3 +640,126 @@ html {
     border: none !important;
     pointer-events: none;
 }
+
+/* ==========================================
+   9. INOVAÇÕES (ANDARES E ROTAS)
+========================================== */
+
+/* 9.1 Seletor de Andares */
+.seletor-andares {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 999;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: opacity 0.3s;
+}
+
+.seletor-andares.oculto {
+    display: none !important;
+}
+
+.btn-andar {
+    background: transparent;
+    border: none;
+    padding: 12px 10px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.btn-andar:last-child {
+    border-bottom: none;
+}
+
+.btn-andar:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.btn-andar.ativo {
+    background: #12472b;
+    color: #fff;
+}
+
+/* Ajuste do seletor no Mobile */
+@media screen and (max-width: 768px) {
+    .seletor-andares {
+        top: auto;
+        bottom: 160px; /* Fica acima do botão de GPS */
+        right: 20px;
+        transform: none;
+    }
+}
+
+/* 9.2 Botão "Como Chegar" no Popup */
+.btn-rota {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: #ffc107; /* Amarelo Univille */
+    color: #12472b;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.btn-rota:hover {
+    background: #e0a800;
+}
+
+.btn-rota:active {
+    transform: scale(0.95);
+}
+
+/* 9.3 Estilo da Linha da Rota (Animação Marcha de Formiga) */
+.linha-rota {
+    stroke-dasharray: 10, 10;
+    animation: ant-march 1s linear infinite;
+}
+
+@keyframes ant-march {
+    to {
+        stroke-dashoffset: -20;
+    }
+}
+
+/* 9.4 Toast de Distância (Exibe a mensagem de metros) */
+.toast-distancia {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #12472b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 3000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+}
+
+.toast-distancia.visivel {
+    opacity: 1;
+    visibility: visible;
+}

@@ -126,18 +126,27 @@ Promise.all([
                     });
                 }
 
-                const htmlPopup = `
-                <div style="text-align: center; font-family: Arial;">
-                    <h3 style="margin: 0 0 5px 0; color: #12472b;">${feature.properties.nome}</h3>
-                    <hr style="border: 1px solid #eee;">
-                    <b>Bloco:</b> ${feature.properties.fk_bloco}<br>
-                    <b>Andar:</b> ${feature.properties.andar}<br>
-                    <b>Tipo:</b> ${feature.properties.tipo}
-                </div>
-            `;
-                layer.bindPopup(htmlPopup);
+                // Usamos um evento 'add' para pegar o centro real do polígono para a rota
+                layer.on('add', function() {
+                    const centro = layer.getBounds().getCenter();
+                    const htmlPopup = `
+                    <div style="text-align: center; font-family: Arial;">
+                        <h3 style="margin: 0 0 5px 0; color: #12472b;">${feature.properties.nome}</h3>
+                        <hr style="border: 1px solid #eee;">
+                        <b>Bloco:</b> ${feature.properties.fk_bloco}<br>
+                        <b>Andar:</b> ${feature.properties.andar}<br>
+                        <b>Tipo:</b> ${feature.properties.tipo}
+                        <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                    </div>
+                `;
+                    layer.bindPopup(htmlPopup);
+                });
             }
         };
+
+        // Salvar globalmente para o filtro de andares
+        window.salasOriginais = salas;
+        window.configVisual = configVisual;
 
         L.geoJSON(apenasSalas, configVisual).addTo(grupoSalas);
         L.geoJSON(apenasBanheiros, configVisual).addTo(grupoBanheiros);
@@ -378,4 +387,101 @@ map.on('locationfound', function(e) {
 map.on('locationerror', function(e) {
     btnGps.classList.remove('rastreando');
     alert("Não foi possível acessar o GPS. Por favor, verifique se a localização está ativada em seu navegador.");
-});
+});
+
+// ==========================================
+// 8. INOVAÇÕES (ROTAS, ANDARES E PWA)
+// ==========================================
+
+// --- 8.1 Rotas em Linha Reta ---
+window.rotaAtual = null;
+
+window.tracarRota = function(destLat, destLng) {
+    if (!marcadorGps) {
+        alert("📍 Ative sua localização (botão de alvo ali no canto) primeiro para eu traçar uma rota para você!");
+        return;
+    }
+    const startLat = marcadorGps.getLatLng().lat;
+    const startLng = marcadorGps.getLatLng().lng;
+
+    if (window.rotaAtual) {
+        map.removeLayer(window.rotaAtual);
+    }
+
+    window.rotaAtual = L.polyline([
+        [startLat, startLng],
+        [destLat, destLng]
+    ], {
+        color: '#ffc107', // Amarelo Univille
+        weight: 4,
+        className: 'linha-rota' // Animação via CSS
+    }).addTo(map);
+
+    // Zoom para mostrar a pessoa e a sala
+    map.fitBounds(window.rotaAtual.getBounds(), { padding: [50, 50], maxZoom: 20 });
+
+    const dist = map.distance([startLat, startLng], [destLat, destLng]);
+    mostrarToastDistancia(`Caminho direto: ${Math.round(dist)} metros`);
+};
+
+function mostrarToastDistancia(msg) {
+    let toast = document.getElementById('toast-distancia');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-distancia';
+        toast.className = 'toast-distancia';
+        document.body.appendChild(toast);
+    }
+    toast.innerText = msg;
+    toast.classList.add('visivel');
+    setTimeout(() => toast.classList.remove('visivel'), 5000);
+}
+
+// --- 8.2 Seletor de Andares ---
+const andaresBotoes = document.querySelectorAll('.btn-andar');
+
+andaresBotoes.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Remove estado ativo de todos e coloca no clicado
+        andaresBotoes.forEach(b => b.classList.remove('ativo'));
+        e.target.classList.add('ativo');
+
+        const andarSelecionado = e.target.getAttribute('data-andar');
+
+        // Limpa as camadas antigas
+        grupoSalas.clearLayers();
+        grupoBanheiros.clearLayers();
+
+        // Filtra os dados originais
+        const salasFiltradas = {
+            type: "FeatureCollection",
+            features: window.salasOriginais.features.filter(f => 
+                f.properties.tipo !== 'Sanitário' && 
+                (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
+            )
+        };
+
+        const banheirosFiltrados = {
+            type: "FeatureCollection",
+            features: window.salasOriginais.features.filter(f => 
+                f.properties.tipo === 'Sanitário' && 
+                (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
+            )
+        };
+
+        // Redesenha apenas os filtrados
+        L.geoJSON(salasFiltradas, window.configVisual).addTo(grupoSalas);
+        L.geoJSON(banheirosFiltrados, window.configVisual).addTo(grupoBanheiros);
+    });
+});
+
+// --- 8.3 Registro do PWA (Offline) ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(registro => {
+            console.log('Service Worker registrado com sucesso: ', registro.scope);
+        }).catch(erro => {
+            console.log('Falha ao registrar o Service Worker: ', erro);
+        });
+    });
+}

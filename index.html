@@ -7,8 +7,12 @@
     <title>Mapa Interativo - Univille</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Manifesto PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#12472b">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2312472b'/><text x='50' y='65' font-size='50' fill='white' text-anchor='middle'>📍</text></svg>">
 </head>
 
 <body>
@@ -21,6 +25,13 @@
 
     <!-- Botão de Localização (GPS) Flutuante -->
     <button id="btn-gps" class="btn-flutuante" title="Minha Localização">🎯</button>
+
+    <!-- Seletor de Andares (Indoor Mapping) -->
+    <div id="seletor-andares" class="seletor-andares oculto">
+        <button class="btn-andar ativo" data-andar="todos" title="Mostrar todos os andares">Todos</button>
+        <button class="btn-andar" data-andar="3 Andar" title="3º Andar">3º</button>
+        <button class="btn-andar" data-andar="2 Andar" title="2º Andar">2º</button>
+    </div>
     <!-- Fundo escuro quando um menu abre no celular -->
     <div id="overlay-mobile" class="overlay-oculto"></div>
 
