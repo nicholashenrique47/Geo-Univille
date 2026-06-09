@@ -280,3 +280,50 @@ html {
     border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
     margin: 8px 0 !important;
 }
+
+/* ==========================================
+   7. RESPONSIVIDADE (CELULARES E TABLETS MENORES)
+========================================== */
+@media screen and (max-width: 768px) {
+    /* Ajusta a barra de pesquisa para preencher o espaço disponível */
+    .painel-controle {
+        top: 15px;
+        left: 55px; /* Deixa espaço para os botões de zoom (+ / -) do mapa */
+        width: calc(100% - 70px); /* Calcula a largura subtraindo as margens */
+    }
+
+    .busca-container {
+        width: 100%;
+        padding: 2px 10px;
+    }
+
+    /* Evita o zoom automático incômodo no iPhone ao focar em inputs (requer font-size de 16px) */
+    #busca-sala {
+        font-size: 16px; 
+        padding: 12px 10px 12px 30px;
+    }
+
+    /* Desloca os controles da direita (como o botão de camadas) para baixo para não sobrepor a busca */
+    .leaflet-top.leaflet-right {
+        margin-top: 60px;
+    }
+
+    /* Aumenta as áreas de toque (Touch Targets) na lista de resultados para os dedos */
+    #lista-resultados li {
+        padding: 15px 12px;
+    }
+
+    .resultado-nome {
+        font-size: 15px;
+    }
+
+    .resultado-detalhe {
+        font-size: 12px;
+    }
+
+    /* Reduz levemente o menu de camadas caso esteja aberto em tela pequena */
+    .leaflet-control-layers {
+        max-width: 220px !important;
+        padding: 8px 10px !important;
+    }
+}
