@@ -33,7 +33,7 @@ const grupoBlocos = L.featureGroup().addTo(map);
 const grupoSalas = L.featureGroup().addTo(map);
 const grupoBanheiros = L.featureGroup().addTo(map);
 
-L.control.layers(
+const controleCamadas = L.control.layers(
     {
         "Satélite (Google)": camadaSateliteGoogle,
         "Satélite (Esri)": camadaSateliteEsri,
@@ -198,6 +198,9 @@ inputBusca.addEventListener('input', (evento) => {
                         listaResultados.classList.add('resultados-oculto');
                         inputBusca.value = nome;
 
+                        // Fecha o painel mobile (se existir a função)
+                        if (typeof fecharPaineis === 'function') fecharPaineis();
+
                         // Garante que o grupo certo esteja ligado no menu de camadas
                         if (!map.hasLayer(grupo)) {
                             map.addLayer(grupo);
@@ -226,3 +229,83 @@ document.addEventListener('click', (evento) => {
         listaResultados.classList.add('resultados-oculto');
     }
 });
+
+// ==========================================
+// 6. LÓGICA DA INTERFACE MOBILE (BOTTOM NAV)
+// ==========================================
+const btnBusca = document.getElementById('btn-busca');
+const btnCamadas = document.getElementById('btn-camadas');
+const btnInicio = document.getElementById('btn-inicio');
+
+const painelBusca = document.getElementById('painel-busca');
+const painelCamadas = document.getElementById('painel-camadas');
+const overlayMobile = document.getElementById('overlay-mobile');
+
+// Função para fechar qualquer painel aberto
+function fecharPaineis() {
+    if(painelBusca) painelBusca.classList.remove('aberto');
+    if(painelCamadas) painelCamadas.classList.remove('aberto');
+    if(overlayMobile) overlayMobile.classList.remove('visivel');
+    
+    if(btnBusca) btnBusca.classList.remove('ativo');
+    if(btnCamadas) btnCamadas.classList.remove('ativo');
+}
+
+// Função para alternar o estado do painel
+function alternarPainel(painel, btn) {
+    if (painel.classList.contains('aberto')) {
+        fecharPaineis();
+    } else {
+        fecharPaineis(); // Fecha outros antes de abrir este
+        painel.classList.add('aberto');
+        overlayMobile.classList.add('visivel');
+        btn.classList.add('ativo');
+    }
+}
+
+// Atrelando os cliques aos botões da barra inferior
+if(btnBusca) btnBusca.addEventListener('click', () => alternarPainel(painelBusca, btnBusca));
+if(btnCamadas) btnCamadas.addEventListener('click', () => alternarPainel(painelCamadas, btnCamadas));
+
+// Botão Início: Fecha os painéis e centraliza a câmera
+if(btnInicio) {
+    btnInicio.addEventListener('click', () => {
+        fecharPaineis();
+        // Usa as coordenadas de foco originais ou os limites do grupo
+        if (grupoBlocos && grupoBlocos.getBounds().isValid()) {
+            map.flyToBounds(grupoBlocos.getBounds(), { duration: 1.5 });
+        } else {
+            map.flyTo([-26.2503, -48.8559], 19, { duration: 1.5 });
+        }
+    });
+}
+
+// Fechar painéis ao clicar na parte escura (overlay) ou na alça
+if(overlayMobile) overlayMobile.addEventListener('click', fecharPaineis);
+if(document.getElementById('handle-busca')) document.getElementById('handle-busca').addEventListener('click', fecharPaineis);
+if(document.getElementById('handle-camadas')) document.getElementById('handle-camadas').addEventListener('click', fecharPaineis);
+
+// Lógica inteligente para mover o menu de camadas do Leaflet para dentro do painel
+function ajustarControleCamadasMobile() {
+    const containerCamadas = document.getElementById('camadas-container');
+    if(!containerCamadas || !controleCamadas) return;
+
+    const controleElemento = controleCamadas.getContainer();
+    
+    if (window.innerWidth <= 768) {
+        // Celular: Move para dentro do Bottom Sheet de Camadas
+        if (!containerCamadas.contains(controleElemento)) {
+            containerCamadas.appendChild(controleElemento);
+        }
+    } else {
+        // Desktop: Devolve para o canto superior direito do Leaflet
+        const leafletTopRight = document.querySelector('.leaflet-top.leaflet-right');
+        if (leafletTopRight && !leafletTopRight.contains(controleElemento)) {
+            leafletTopRight.appendChild(controleElemento);
+        }
+    }
+}
+
+// Checa na hora que carrega e caso o usuário gire o celular (resize)
+ajustarControleCamadasMobile();
+window.addEventListener('resize', ajustarControleCamadasMobile);

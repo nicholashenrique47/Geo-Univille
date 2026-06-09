@@ -12,14 +12,42 @@
 </head>
 
 <body>
-    <div class="painel-controle">
+    <!-- Fundo escuro quando um menu abre no celular -->
+    <div id="overlay-mobile" class="overlay-oculto"></div>
+
+    <div class="painel-controle" id="painel-busca">
+        <div class="bottom-sheet-handle" id="handle-busca"></div>
         <div class="busca-container">
             <input type="text" id="busca-sala" placeholder="Buscar sala..." autocomplete="off">
             <ul id="lista-resultados" class="resultados-oculto"></ul>
         </div>
     </div>
 
+    <!-- Painel de Camadas para o Celular -->
+    <div id="painel-camadas" class="painel-camadas">
+        <div class="bottom-sheet-handle" id="handle-camadas"></div>
+        <h3 class="titulo-painel">Mapas e Visualização</h3>
+        <!-- O controle do Leaflet será movido para cá via JS no celular -->
+        <div id="camadas-container"></div>
+    </div>
+
     <div id="map"></div>
+
+    <!-- Barra Inferior (Apenas Celular) -->
+    <nav class="bottom-nav">
+        <button id="btn-busca" class="nav-btn">
+            <span class="nav-icon">🔍</span>
+            <span>Buscar</span>
+        </button>
+        <button id="btn-camadas" class="nav-btn">
+            <span class="nav-icon">📚</span>
+            <span>Camadas</span>
+        </button>
+        <button id="btn-inicio" class="nav-btn">
+            <span class="nav-icon">📍</span>
+            <span>Início</span>
+        </button>
+    </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>

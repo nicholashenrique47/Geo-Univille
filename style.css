@@ -282,48 +282,197 @@ html {
 }
 
 /* ==========================================
-   7. RESPONSIVIDADE (CELULARES E TABLETS MENORES)
+   7. INTERFACE MOBILE (BOTTOM NAVIGATION & SHEETS)
 ========================================== */
+
+/* Esconde a barra inferior e painéis no desktop por padrão */
+.bottom-nav,
+#overlay-mobile,
+.painel-camadas,
+.bottom-sheet-handle {
+    display: none;
+}
+
 @media screen and (max-width: 768px) {
-    /* Ajusta a barra de pesquisa para preencher o espaço disponível */
-    .painel-controle {
-        top: 15px;
-        left: 55px; /* Deixa espaço para os botões de zoom (+ / -) do mapa */
-        width: calc(100% - 70px); /* Calcula a largura subtraindo as margens */
-    }
-
-    .busca-container {
+    /* Exibe a Barra Inferior */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
         width: 100%;
-        padding: 2px 10px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+        z-index: 2000;
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom); /* Suporte a entalhe de tela (Notch) */
     }
 
-    /* Evita o zoom automático incômodo no iPhone ao focar em inputs (requer font-size de 16px) */
-    #busca-sala {
-        font-size: 16px; 
-        padding: 12px 10px 12px 30px;
+    .nav-btn {
+        background: transparent;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 30%;
+        height: 100%;
+        color: #777;
+        font-weight: 600;
+        font-size: 11px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.2s;
     }
 
-    /* Desloca os controles da direita (como o botão de camadas) para baixo para não sobrepor a busca */
+    .nav-btn.ativo {
+        color: #12472b; /* Verde Univille */
+    }
+
+    .nav-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+        transition: transform 0.2s;
+    }
+
+    .nav-btn.ativo .nav-icon {
+        transform: scale(1.15);
+    }
+
+    /* Oculta os controles originais de camada do Leaflet no mapa */
     .leaflet-top.leaflet-right {
-        margin-top: 60px;
+        display: none !important; 
     }
 
-    /* Aumenta as áreas de toque (Touch Targets) na lista de resultados para os dedos */
+    /* Fundo Escuro quando um painel sobe */
+    #overlay-mobile {
+        display: block;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1500;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+    }
+
+    #overlay-mobile.visivel {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Bottom Sheets (Painéis Deslizantes de Busca e Camadas) */
+    .painel-controle, .painel-camadas {
+        display: block;
+        position: fixed;
+        bottom: -100%; /* Oculto embaixo da tela */
+        left: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -10px 25px rgba(0,0,0,0.2);
+        z-index: 1600;
+        transition: bottom 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        padding: 15px 20px 80px 20px; /* 80px de padding embaixo para não conflitar com a nav bar */
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Ação que faz o painel subir */
+    .painel-controle.aberto, .painel-camadas.aberto {
+        bottom: 0;
+    }
+
+    /* Alça visual no topo do painel para indicar que desliza */
+    .bottom-sheet-handle {
+        display: block;
+        width: 40px;
+        height: 5px;
+        background: #ccc;
+        border-radius: 5px;
+        margin: 0 auto 15px auto;
+    }
+
+    .titulo-painel {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #12472b;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 18px;
+    }
+
+    /* Ajuste visual da busca para combinar com o painel claro */
+    .busca-container {
+        width: 100% !important;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    #busca-sala {
+        color: #333; /* Texto escuro */
+        font-size: 16px;
+        padding: 14px 10px 14px 35px;
+        /* Ícone de lupa escuro */
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="%23555" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+    }
+    
+    #busca-sala::placeholder {
+        color: #888;
+    }
+
+    #lista-resultados {
+        position: static;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        margin-top: 10px;
+        max-height: none; /* Deixa o próprio painel rolar se precisar */
+    }
+
     #lista-resultados li {
         padding: 15px 12px;
     }
 
-    .resultado-nome {
-        font-size: 15px;
+    /* Ajuste para o controle de camadas do Leaflet quando movido para o nosso painel */
+    #camadas-container .leaflet-control-layers {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        color: #333 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        width: 100%;
+        padding: 0 !important;
     }
 
-    .resultado-detalhe {
-        font-size: 12px;
+    #camadas-container .leaflet-control-layers-toggle {
+        display: none !important; /* Esconde o botão quadradinho de camadas do Leaflet */
     }
 
-    /* Reduz levemente o menu de camadas caso esteja aberto em tela pequena */
-    .leaflet-control-layers {
-        max-width: 220px !important;
-        padding: 8px 10px !important;
+    #camadas-container .leaflet-control-layers-list {
+        display: block !important; /* A lista de camadas fica sempre visível no painel */
+    }
+
+    #camadas-container .leaflet-control-layers label {
+        color: #333 !important;
+        text-shadow: none;
+        font-size: 16px;
+        padding: 12px 5px;
+        border-bottom: 1px solid #eaeaea;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    #camadas-container .leaflet-control-layers-separator {
+        border-top: 2px solid #ddd !important;
+        margin: 15px 0 !important;
     }
 }
