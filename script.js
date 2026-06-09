@@ -146,8 +146,23 @@ Promise.all([
 
         // Dispara a regra de zoom pela primeira vez ao carregar a página
         gerenciarZoom();
+
+        // Esconde a Splash Screen (Premium UI/UX)
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.classList.add('splash-escondido');
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 600); // Aguarda a animação de opacidade terminar
+        }
     })
-    .catch(erro => console.error("Erro ao carregar arquivos:", erro));
+    .catch(erro => {
+        console.error("Erro ao carregar arquivos:", erro);
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.innerHTML = '<h2>Oops!</h2><p>Erro ao carregar os dados do mapa.</p>';
+        }
+    });
 
 
 // ==========================================
@@ -220,7 +235,9 @@ inputBusca.addEventListener('input', (evento) => {
     if (encontrou) {
         listaResultados.classList.remove('resultados-oculto');
     } else {
-        listaResultados.classList.add('resultados-oculto');
+        // Feedback elegante se não encontrar salas (Padrão Ouro)
+        listaResultados.innerHTML = `<li class="msg-erro-pesquisa">Nenhuma sala encontrada com "${evento.target.value}"</li>`;
+        listaResultados.classList.remove('resultados-oculto');
     }
 });
 
@@ -308,4 +325,57 @@ function ajustarControleCamadasMobile() {
 
 // Checa na hora que carrega e caso o usuário gire o celular (resize)
 ajustarControleCamadasMobile();
-window.addEventListener('resize', ajustarControleCamadasMobile);
+window.addEventListener('resize', ajustarControleCamadasMobile);
+
+// ==========================================
+// 7. GEOLOCALIZAÇÃO (GPS PADRÃO OURO)
+// ==========================================
+const btnGps = document.getElementById('btn-gps');
+let marcadorGps = null;
+let circuloPrecisaoGps = null;
+
+if (btnGps) {
+    btnGps.addEventListener('click', () => {
+        // Ativa a animação de "buscando"
+        btnGps.classList.add('rastreando');
+        // Pede a localização ao navegador e centraliza se achar
+        map.locate({ setView: true, maxZoom: 19, enableHighAccuracy: true });
+    });
+}
+
+// Quando o navegador encontra a localização
+map.on('locationfound', function(e) {
+    btnGps.classList.remove('rastreando');
+    
+    // Se já havia um marcador antes, remove
+    if (marcadorGps) {
+        map.removeLayer(marcadorGps);
+        map.removeLayer(circuloPrecisaoGps);
+    }
+    
+    const raioDePrecisao = e.accuracy / 2;
+    
+    // Desenha a bolinha azul pulsante exata do usuário
+    marcadorGps = L.circleMarker(e.latlng, {
+        radius: 8,
+        fillColor: "#007bff",
+        color: "#ffffff",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1
+    }).addTo(map);
+    
+    // Desenha o halo claro em volta mostrando a precisão do GPS
+    circuloPrecisaoGps = L.circle(e.latlng, raioDePrecisao, {
+        color: '#007bff',
+        fillColor: '#007bff',
+        fillOpacity: 0.15,
+        weight: 1
+    }).addTo(map);
+});
+
+// Tratamento de falha do GPS
+map.on('locationerror', function(e) {
+    btnGps.classList.remove('rastreando');
+    alert("Não foi possível acessar o GPS. Por favor, verifique se a localização está ativada em seu navegador.");
+});
