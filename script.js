@@ -247,7 +247,6 @@ Promise.all([
                     });
                 }
 
-                // Usamos um evento 'add' para pegar o centro real do polígono para a rota
                 layer.on('add', function () {
                     const centro = layer.getBounds().getCenter();
                     const htmlPopup = `
@@ -257,7 +256,10 @@ Promise.all([
                         <b>Bloco:</b> ${feature.properties.fk_bloco}<br>
                         <b>Andar:</b> ${feature.properties.andar}<br>
                         <b>Tipo:</b> ${feature.properties.tipo}
-                        <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${centro.lat}, ${centro.lng})">🏁 Partir Daqui</button>
+                            <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                        </div>
                     </div>
                 `;
                     layer.bindPopup(htmlPopup);
@@ -287,7 +289,10 @@ Promise.all([
                     <div style="text-align: center; font-family: Arial;">
                         <h3 style="margin: 0 0 5px 0; color: #12472b;">Biblioteca</h3>
                         <hr style="border: 1px solid #eee;">
-                        <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${centro.lat}, ${centro.lng})">🏁 Partir Daqui</button>
+                            <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                        </div>
                     </div>
                     `;
                     layer.bindPopup(htmlPopup);
@@ -307,8 +312,11 @@ Promise.all([
                     <div style="text-align: center; font-family: Arial;">
                         <h3 style="margin: 0 0 5px 0; color: #12472b;">${nome}</h3>
                         <hr style="border: 1px solid #eee;">
-                        <b>Horário:</b> ${horario}<br><br>
-                        <button class="btn-rota" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng})">📍 Como Chegar</button>
+                        <b>Horário:</b> ${horario}
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${latlng.lat}, ${latlng.lng})">🏁 Partir Daqui</button>
+                            <button class="btn-rota" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng})">📍 Como Chegar</button>
+                        </div>
                     </div>
                     `;
                     layer.bindPopup(htmlPopup);
@@ -564,28 +572,26 @@ map.on('locationerror', function (e) {
 // --- 8.1 Rotas em Linha Reta ---
 window.rotaAtual = null;
 
+window.definirPartida = function(lat, lng) {
+    if (window.marcadorTeste) map.removeLayer(window.marcadorTeste);
+    
+    window.marcadorTeste = L.circleMarker([lat, lng], {
+        radius: 8,
+        fillColor: "#ff0000",
+        color: "#ffffff",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1
+    }).addTo(map).bindPopup("Ponto de Partida Simulado").openPopup();
+    
+    marcadorGps = window.marcadorTeste;
+    mostrarToastDistancia("Ponto de partida salvo! Agora escolha o destino.");
+    map.closePopup();
+};
+
 window.tracarRota = function (destLat, destLng) {
     if (!marcadorGps) {
-        alert("📍 GPS Inativo ou em modo de teste: Clique em 'OK' e depois clique no local de partida no mapa (ex: Biblioteca) para traçar a rota.");
-        document.getElementById('map').style.cursor = 'crosshair';
-        
-        map.once('click', function(e) {
-            document.getElementById('map').style.cursor = '';
-            if (window.marcadorTeste) map.removeLayer(window.marcadorTeste);
-            
-            window.marcadorTeste = L.circleMarker(e.latlng, {
-                radius: 8,
-                fillColor: "#ff0000",
-                color: "#ffffff",
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 1
-            }).addTo(map).bindPopup("Ponto de Partida").openPopup();
-            
-            // Finge que o marcador de teste é o GPS
-            marcadorGps = window.marcadorTeste;
-            window.tracarRota(destLat, destLng);
-        });
+        alert("📍 Para traçar a rota, ative seu GPS ou clique em '🏁 Partir Daqui' em algum local do mapa primeiro!");
         return;
     }
     const startLat = marcadorGps.getLatLng().lat;
