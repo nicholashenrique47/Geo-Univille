@@ -97,20 +97,39 @@ class GrafoRotas {
             }
             lines.forEach(coords => {
                 for (let i = 0; i < coords.length - 1; i++) {
-                    const p1 = coords[i][0].toFixed(6) + ',' + coords[i][1].toFixed(6);
-                    const p2 = coords[i + 1][0].toFixed(6) + ',' + coords[i + 1][1].toFixed(6);
-                    const dist = map.distance([coords[i][1], coords[i][0]], [coords[i + 1][1], coords[i + 1][0]]);
-                    this.addAresta(p1, p2, dist);
+                    const p1 = this.getOrCreateNode(coords[i][0], coords[i][1]);
+                    const p2 = this.getOrCreateNode(coords[i + 1][0], coords[i + 1][1]);
+                    if (p1 !== p2) {
+                        const [lng1, lat1] = p1.split(',').map(Number);
+                        const [lng2, lat2] = p2.split(',').map(Number);
+                        const dist = map.distance([lat1, lng1], [lat2, lng2]);
+                        this.addAresta(p1, p2, dist);
+                    }
                 }
             });
         });
     }
 
+    getOrCreateNode(lng, lat) {
+        for (let noStr of this.adj.keys()) {
+            const [lngNo, latNo] = noStr.split(',').map(Number);
+            const dist = map.distance([lat, lng], [latNo, lngNo]);
+            if (dist < 10) { // Tolerância aumentada para 10 metros para conectar vias soltas desenhadas
+                return noStr;
+            }
+        }
+        const noStr = lng.toFixed(6) + ',' + lat.toFixed(6);
+        this.adj.set(noStr, []);
+        return noStr;
+    }
+
     addAresta(p1, p2, peso) {
         if (!this.adj.has(p1)) this.adj.set(p1, []);
         if (!this.adj.has(p2)) this.adj.set(p2, []);
-        this.adj.get(p1).push({ no: p2, peso: peso });
-        this.adj.get(p2).push({ no: p1, peso: peso });
+        const p1Arestas = this.adj.get(p1);
+        if (!p1Arestas.find(e => e.no === p2)) p1Arestas.push({ no: p2, peso: peso });
+        const p2Arestas = this.adj.get(p2);
+        if (!p2Arestas.find(e => e.no === p1)) p2Arestas.push({ no: p1, peso: peso });
     }
 
     encontrarNoMaisProximo(lat, lng) {
@@ -262,7 +281,17 @@ Promise.all([
         L.geoJSON(biblioteca, {
             style: { color: "#8a2be2", weight: 2, fillColor: "#8a2be2", fillOpacity: 0.4 },
             onEachFeature: function (feature, layer) {
-                layer.bindPopup(`<b>Biblioteca</b>`);
+                layer.on('add', function () {
+                    const centro = layer.getBounds().getCenter();
+                    const htmlPopup = `
+                    <div style="text-align: center; font-family: Arial;">
+                        <h3 style="margin: 0 0 5px 0; color: #12472b;">Biblioteca</h3>
+                        <hr style="border: 1px solid #eee;">
+                        <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
+                    </div>
+                    `;
+                    layer.bindPopup(htmlPopup);
+                });
             }
         }).addTo(grupoBiblioteca);
 
@@ -270,7 +299,20 @@ Promise.all([
         L.geoJSON(cantinas, {
             style: { color: "#ff4500", weight: 2, fillColor: "#ff4500", fillOpacity: 0.4 },
             onEachFeature: function (feature, layer) {
-                layer.bindPopup(`<b>Cantina</b>`);
+                layer.on('add', function () {
+                    const latlng = layer.getLatLng ? layer.getLatLng() : layer.getBounds().getCenter();
+                    const nome = feature.properties.NOME || 'Cantina';
+                    const horario = feature.properties.HORARIO || '';
+                    const htmlPopup = `
+                    <div style="text-align: center; font-family: Arial;">
+                        <h3 style="margin: 0 0 5px 0; color: #12472b;">${nome}</h3>
+                        <hr style="border: 1px solid #eee;">
+                        <b>Horário:</b> ${horario}<br><br>
+                        <button class="btn-rota" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng})">📍 Como Chegar</button>
+                    </div>
+                    `;
+                    layer.bindPopup(htmlPopup);
+                });
             }
         }).addTo(grupoCantinas);
 
