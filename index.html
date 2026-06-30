@@ -37,10 +37,37 @@
     <!-- Fundo escuro quando um menu abre no celular -->
     <div id="overlay-mobile" class="overlay-oculto"></div>
 
+    <!-- Painel Principal Superior -->
     <div class="painel-controle" id="painel-busca">
         <div class="bottom-sheet-handle" id="handle-busca"></div>
-        <div class="busca-container">
-            <input type="text" id="busca-sala" placeholder="Buscar sala..." autocomplete="off">
+        
+        <div class="painel-interno">
+            <!-- MODO BUSCA (Padrão) -->
+            <div class="busca-container" id="container-busca-simples">
+                <input type="text" id="busca-sala" placeholder="Pesquise aqui" autocomplete="off">
+                <button id="btn-abrir-rotas" class="btn-direcoes" title="Traçar Rota"></button>
+            </div>
+
+            <!-- MODO ROTAS (Estilo Google Maps) -->
+            <div class="rotas-container oculto" id="container-rotas">
+                <div class="rotas-header">
+                    <button id="btn-fechar-rotas" class="btn-icone" title="Voltar">⬅️</button>
+                    <div class="rotas-inputs">
+                        <div class="input-rota-wrapper">
+                            <span class="icone-origem"></span>
+                            <input type="text" id="input-origem" placeholder="Escolha a partida" autocomplete="off">
+                            <button class="btn-gps-input" id="btn-usar-gps" title="Usar minha localização">🎯</button>
+                        </div>
+                        <div class="input-rota-wrapper">
+                            <span class="icone-destino"></span>
+                            <input type="text" id="input-destino" placeholder="Escolha o destino" autocomplete="off">
+                        </div>
+                    </div>
+                    <button id="btn-inverter-rotas" class="btn-icone invert" title="Inverter origem e destino">↕️</button>
+                </div>
+            </div>
+            
+            <!-- LISTA DE RESULTADOS COMPARTILHADA -->
             <ul id="lista-resultados" class="resultados-oculto"></ul>
         </div>
     </div>

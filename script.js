@@ -114,7 +114,7 @@ class GrafoRotas {
         for (let noStr of this.adj.keys()) {
             const [lngNo, latNo] = noStr.split(',').map(Number);
             const dist = map.distance([lat, lng], [latNo, lngNo]);
-            if (dist < 10) { // Tolerância aumentada para 10 metros para conectar vias soltas desenhadas
+            if (dist < 40) { // Tolerância aumentada para 40 metros
                 return noStr;
             }
         }
@@ -249,17 +249,15 @@ Promise.all([
 
                 layer.on('add', function () {
                     const centro = layer.getBounds().getCenter();
+                    const nome = feature.properties.nome || "Sala";
                     const htmlPopup = `
                     <div style="text-align: center; font-family: Arial;">
-                        <h3 style="margin: 0 0 5px 0; color: #12472b;">${feature.properties.nome}</h3>
+                        <h3 style="margin: 0 0 5px 0; color: #12472b;">${nome}</h3>
                         <hr style="border: 1px solid #eee;">
                         <b>Bloco:</b> ${feature.properties.fk_bloco}<br>
                         <b>Andar:</b> ${feature.properties.andar}<br>
                         <b>Tipo:</b> ${feature.properties.tipo}
-                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${centro.lat}, ${centro.lng})">🏁 Partir Daqui</button>
-                            <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
-                        </div>
+                        <button class="btn-rota" style="margin-top:10px;" onclick="window.tracarRota(${centro.lat}, ${centro.lng}, '${nome}')">📍 Como Chegar</button>
                     </div>
                 `;
                     layer.bindPopup(htmlPopup);
@@ -289,10 +287,7 @@ Promise.all([
                     <div style="text-align: center; font-family: Arial;">
                         <h3 style="margin: 0 0 5px 0; color: #12472b;">Biblioteca</h3>
                         <hr style="border: 1px solid #eee;">
-                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${centro.lat}, ${centro.lng})">🏁 Partir Daqui</button>
-                            <button class="btn-rota" onclick="window.tracarRota(${centro.lat}, ${centro.lng})">📍 Como Chegar</button>
-                        </div>
+                        <button class="btn-rota" style="margin-top:10px;" onclick="window.tracarRota(${centro.lat}, ${centro.lng}, 'Biblioteca')">📍 Como Chegar</button>
                     </div>
                     `;
                     layer.bindPopup(htmlPopup);
@@ -313,10 +308,7 @@ Promise.all([
                         <h3 style="margin: 0 0 5px 0; color: #12472b;">${nome}</h3>
                         <hr style="border: 1px solid #eee;">
                         <b>Horário:</b> ${horario}
-                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-                            <button class="btn-rota" style="background-color: #007bff;" onclick="window.definirPartida(${latlng.lat}, ${latlng.lng})">🏁 Partir Daqui</button>
-                            <button class="btn-rota" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng})">📍 Como Chegar</button>
-                        </div>
+                        <button class="btn-rota" style="margin-top:10px;" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng}, '${nome}')">📍 Como Chegar</button>
                     </div>
                     `;
                     layer.bindPopup(htmlPopup);
@@ -351,86 +343,196 @@ Promise.all([
 
 
 // ==========================================
-// 5. LÓGICA DE BUSCA APRIMORADA
+// 5. LÓGICA DE BUSCA E PAINEL DE ROTAS
 // ==========================================
+const containerBuscaSimples = document.getElementById('container-busca-simples');
+const containerRotas = document.getElementById('container-rotas');
+const btnAbrirRotas = document.getElementById('btn-abrir-rotas');
+const btnFecharRotas = document.getElementById('btn-fechar-rotas');
+const btnInverterRotas = document.getElementById('btn-inverter-rotas');
 const inputBusca = document.getElementById('busca-sala');
+const inputOrigem = document.getElementById('input-origem');
+const inputDestino = document.getElementById('input-destino');
 const listaResultados = document.getElementById('lista-resultados');
+const btnUsarGps = document.getElementById('btn-usar-gps');
 
-inputBusca.addEventListener('input', (evento) => {
-    const termo = evento.target.value.toLowerCase();
-    listaResultados.innerHTML = '';
+let inputAtivo = inputBusca;
+window.origemCoords = null;
+window.destinoCoords = null;
 
-    if (termo.length < 2) {
+function alternarModoRotas(abrir) {
+    if (abrir) {
+        containerBuscaSimples.classList.add('oculto');
+        containerRotas.classList.remove('oculto');
+        if (inputBusca.value && !inputDestino.value) {
+            inputDestino.value = inputBusca.value;
+        }
+        inputAtivo = inputOrigem;
+        inputOrigem.focus();
+    } else {
+        containerRotas.classList.add('oculto');
+        containerBuscaSimples.classList.remove('oculto');
+        inputAtivo = inputBusca;
         listaResultados.classList.add('resultados-oculto');
-        return;
+        
+        // Se a rota estava ativa mas fechamos o painel, a linha some
+        if (window.rotaAtual) {
+            map.removeLayer(window.rotaAtual);
+            window.rotaAtual = null;
+            document.getElementById('toast-distancia')?.classList.remove('visivel');
+        }
     }
+}
 
-    let encontrou = false;
+if (btnAbrirRotas) btnAbrirRotas.addEventListener('click', () => alternarModoRotas(true));
+if (btnFecharRotas) btnFecharRotas.addEventListener('click', () => alternarModoRotas(false));
 
-    // Varre as salas E os banheiros para a busca
-    [grupoSalas, grupoBanheiros].forEach(grupo => {
-        grupo.eachLayer(layerGEOJSON => {
-            layerGEOJSON.eachLayer(layerSala => {
-                const props = layerSala.feature.properties;
-                const nome = props.nome || "";
+if (btnInverterRotas) {
+    btnInverterRotas.addEventListener('click', () => {
+        const tempVal = inputOrigem.value;
+        inputOrigem.value = inputDestino.value;
+        inputDestino.value = tempVal;
 
+        const tempCoords = window.origemCoords;
+        window.origemCoords = window.destinoCoords;
+        window.destinoCoords = tempCoords;
+
+        tentarTracarRota();
+    });
+}
+
+if (btnUsarGps) {
+    btnUsarGps.addEventListener('click', () => {
+        if (marcadorGps) {
+            inputOrigem.value = "Meu Local (GPS)";
+            const latlng = marcadorGps.getLatLng();
+            window.origemCoords = [latlng.lat, latlng.lng];
+            tentarTracarRota();
+        } else {
+            alert("Ative seu GPS clicando no botão 🎯 no canto inferior direito primeiro.");
+        }
+    });
+}
+
+[inputBusca, inputOrigem, inputDestino].forEach(input => {
+    if (!input) return;
+    input.addEventListener('focus', () => {
+        inputAtivo = input;
+        if (input.value.length >= 2) input.dispatchEvent(new Event('input'));
+    });
+
+    input.addEventListener('input', (evento) => {
+        const termo = evento.target.value.toLowerCase();
+        listaResultados.innerHTML = '';
+
+        if (termo.length < 2) {
+            listaResultados.classList.add('resultados-oculto');
+            return;
+        }
+
+        let encontrou = false;
+
+        [grupoSalas, grupoBanheiros].forEach(grupo => {
+            grupo.eachLayer(layerGEOJSON => {
+                layerGEOJSON.eachLayer(layerSala => {
+                    const props = layerSala.feature.properties;
+                    const nome = props.nome || "";
+
+                    if (nome.toLowerCase().includes(termo)) {
+                        adicionarResultadoBusca(nome, `Bloco ${props.fk_bloco} • ${props.tipo}`, props.tipo, layerSala);
+                        encontrou = true;
+                    }
+                });
+            });
+        });
+
+        grupoBiblioteca.eachLayer(layerGEOJSON => {
+            if ("biblioteca".includes(termo)) {
+                adicionarResultadoBusca("Biblioteca", "Prédio Principal", "Biblioteca", layerGEOJSON);
+                encontrou = true;
+            }
+        });
+
+        grupoCantinas.eachLayer(layerGEOJSON => {
+            layerGEOJSON.eachLayer(layerCantina => {
+                const props = layerCantina.feature.properties;
+                const nome = props.NOME || "Cantina";
                 if (nome.toLowerCase().includes(termo)) {
+                    adicionarResultadoBusca(nome, `Horário: ${props.HORARIO}`, "Cantina", layerCantina);
                     encontrou = true;
-                    const li = document.createElement('li');
-
-                    // Define qual ícone usar com base no tipo
-                    let iconeStr = '📍';
-                    if (props.tipo === 'Sanitário') iconeStr = '🚻';
-                    else if (props.tipo === 'LAB') iconeStr = '💻';
-                    else if (props.tipo === 'Sala de Aula') iconeStr = '🚪';
-
-                    // Constrói o HTML do item da lista usando as novas classes do CSS
-                    li.innerHTML = `
-                        <span class="resultado-icone">${iconeStr}</span>
-                        <div class="resultado-info">
-                            <span class="resultado-nome">${nome}</span>
-                            <span class="resultado-detalhe">Bloco ${props.fk_bloco} • ${props.tipo}</span>
-                        </div>
-                    `;
-
-                    // Evento de clique para focar no local
-                    li.addEventListener('click', () => {
-                        listaResultados.classList.add('resultados-oculto');
-                        inputBusca.value = nome;
-
-                        // Fecha o painel mobile (se existir a função)
-                        if (typeof fecharPaineis === 'function') fecharPaineis();
-
-                        // Garante que o grupo certo esteja ligado no menu de camadas
-                        if (!map.hasLayer(grupo)) {
-                            map.addLayer(grupo);
-                        }
-
-                        // Força o zoom máximo para o texto/ícone aparecer e abre o popup
-                        map.flyToBounds(layerSala.getBounds(), { maxZoom: 21, duration: 1.5 });
-                        layerSala.openPopup();
-                    });
-
-                    listaResultados.appendChild(li);
                 }
             });
         });
-    });
 
-    if (encontrou) {
-        listaResultados.classList.remove('resultados-oculto');
-    } else {
-        // Feedback elegante se não encontrar salas (Padrão Ouro)
-        listaResultados.innerHTML = `<li class="msg-erro-pesquisa">Nenhuma sala encontrada com "${evento.target.value}"</li>`;
-        listaResultados.classList.remove('resultados-oculto');
-    }
+        if (encontrou) {
+            listaResultados.classList.remove('resultados-oculto');
+        } else {
+            listaResultados.innerHTML = `<li class="msg-erro-pesquisa">Nenhum local encontrado com "${evento.target.value}"</li>`;
+            listaResultados.classList.remove('resultados-oculto');
+        }
+    });
 });
 
+function adicionarResultadoBusca(nome, detalhe, tipo, layer) {
+    const li = document.createElement('li');
+    let iconeStr = '📍';
+    if (tipo === 'Sanitário') iconeStr = '🚻';
+    else if (tipo === 'LAB') iconeStr = '💻';
+    else if (tipo === 'Sala de Aula') iconeStr = '🚪';
+    else if (tipo === 'Biblioteca') iconeStr = '📚';
+    else if (tipo === 'Cantina') iconeStr = '🍔';
+
+    li.innerHTML = `
+        <span class="resultado-icone">${iconeStr}</span>
+        <div class="resultado-info">
+            <span class="resultado-nome">${nome}</span>
+            <span class="resultado-detalhe">${detalhe}</span>
+        </div>
+    `;
+
+    li.addEventListener('click', () => {
+        listaResultados.classList.add('resultados-oculto');
+        inputAtivo.value = nome;
+
+        let latlng;
+        if (layer.getLatLng) {
+            latlng = layer.getLatLng();
+        } else if (layer.getBounds) {
+            latlng = layer.getBounds().getCenter();
+        } else {
+            const l = layer.getLayers()[0];
+            latlng = l.getLatLng ? l.getLatLng() : l.getBounds().getCenter();
+            layer = l;
+        }
+
+        if (inputAtivo === inputBusca) {
+            if (typeof fecharPaineis === 'function') fecharPaineis();
+            map.flyToBounds(layer.getBounds ? layer.getBounds() : [latlng.lat, latlng.lng], { maxZoom: 21, duration: 1.5 });
+            if (layer.openPopup) layer.openPopup();
+        } else if (inputAtivo === inputOrigem) {
+            window.origemCoords = [latlng.lat, latlng.lng];
+            inputDestino.focus();
+            tentarTracarRota();
+        } else if (inputAtivo === inputDestino) {
+            window.destinoCoords = [latlng.lat, latlng.lng];
+            tentarTracarRota();
+        }
+    });
+
+    listaResultados.appendChild(li);
+}
+
 document.addEventListener('click', (evento) => {
-    if (!inputBusca.contains(evento.target) && !listaResultados.contains(evento.target)) {
+    if (!document.getElementById('painel-busca').contains(evento.target)) {
         listaResultados.classList.add('resultados-oculto');
     }
 });
+
+function tentarTracarRota() {
+    if (window.origemCoords && window.destinoCoords) {
+        tracarRotaCore(window.origemCoords[0], window.origemCoords[1], window.destinoCoords[0], window.destinoCoords[1]);
+    }
+}
 
 // ==========================================
 // 6. LÓGICA DA INTERFACE MOBILE (BOTTOM NAV)
@@ -572,31 +674,26 @@ map.on('locationerror', function (e) {
 // --- 8.1 Rotas em Linha Reta ---
 window.rotaAtual = null;
 
-window.definirPartida = function(lat, lng) {
-    if (window.marcadorTeste) map.removeLayer(window.marcadorTeste);
+window.tracarRota = function (destLat, destLng, nomeLocal) {
+    if (typeof alternarModoRotas === 'function') alternarModoRotas(true);
+    inputDestino.value = nomeLocal || "Destino selecionado";
+    window.destinoCoords = [destLat, destLng];
     
-    window.marcadorTeste = L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: "#ff0000",
-        color: "#ffffff",
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 1
-    }).addTo(map).bindPopup("Ponto de Partida Simulado").openPopup();
+    if (marcadorGps && !window.origemCoords) {
+        inputOrigem.value = "Meu Local (GPS)";
+        const gpsLatlng = marcadorGps.getLatLng();
+        window.origemCoords = [gpsLatlng.lat, gpsLatlng.lng];
+        tentarTracarRota();
+    } else if (!window.origemCoords) {
+        inputOrigem.focus();
+    } else {
+        tentarTracarRota();
+    }
     
-    marcadorGps = window.marcadorTeste;
-    mostrarToastDistancia("Ponto de partida salvo! Agora escolha o destino.");
     map.closePopup();
 };
 
-window.tracarRota = function (destLat, destLng) {
-    if (!marcadorGps) {
-        alert("📍 Para traçar a rota, ative seu GPS ou clique em '🏁 Partir Daqui' em algum local do mapa primeiro!");
-        return;
-    }
-    const startLat = marcadorGps.getLatLng().lat;
-    const startLng = marcadorGps.getLatLng().lng;
-
+function tracarRotaCore(startLat, startLng, destLat, destLng) {
     if (window.rotaAtual) {
         map.removeLayer(window.rotaAtual);
     }
@@ -604,14 +701,12 @@ window.tracarRota = function (destLat, destLng) {
     let latlngs = [];
 
     if (window.grafoRotas && window.grafoRotas.adj.size > 0) {
-        // Encontra o nó mais próximo na rua para o início e para o fim
         const noInicio = window.grafoRotas.encontrarNoMaisProximo(startLat, startLng);
         const noFim = window.grafoRotas.encontrarNoMaisProximo(destLat, destLng);
 
         if (noInicio && noFim) {
             const caminhoGrafo = window.grafoRotas.encontrarCaminhoMaisCurto(noInicio, noFim);
             if (caminhoGrafo.length > 0) {
-                // Adiciona o ponto real de partida, depois o caminho pelas ruas, e o ponto final
                 latlngs.push([startLat, startLng]);
                 latlngs.push(...caminhoGrafo);
                 latlngs.push([destLat, destLng]);
@@ -619,7 +714,6 @@ window.tracarRota = function (destLat, destLng) {
         }
     }
 
-    // Fallback: se não achar caminho na rua, faz linha reta
     if (latlngs.length === 0) {
         latlngs = [
             [startLat, startLng],
@@ -628,15 +722,13 @@ window.tracarRota = function (destLat, destLng) {
     }
 
     window.rotaAtual = L.polyline(latlngs, {
-        color: '#ffc107', // Amarelo Univille
+        color: '#ffc107',
         weight: 4,
-        className: 'linha-rota' // Animação via CSS
+        className: 'linha-rota'
     }).addTo(map);
 
-    // Zoom para mostrar a rota completa
     map.fitBounds(window.rotaAtual.getBounds(), { padding: [50, 50], maxZoom: 20 });
 
-    // Calcula distância total
     let dist = 0;
     for (let i = 0; i < latlngs.length - 1; i++) {
         dist += map.distance(latlngs[i], latlngs[i + 1]);
