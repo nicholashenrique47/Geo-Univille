@@ -1,0 +1,765 @@
+/* ==========================================
+   1. RESET BÁSICO E CONFIGURAÇÃO DO MAPA
+========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    height: 100%;
+    width: 100%;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    /* Fonte moderna e legível */
+    overflow: hidden;
+    /* Evita barras de scroll na página inteira */
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
+    /* O mapa fica na camada de fundo */
+}
+
+
+/* ==========================================
+   2. BARRA DE PESQUISA (PÍLULA FLUTUANTE)
+========================================== */
+.painel-controle {
+    position: absolute;
+    top: 25px;
+    left: 50px;
+    z-index: 1000;
+}
+
+.busca-container {
+    background: rgba(18, 71, 43, 0.75);
+    /* Verde Escuro Translúcido */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    /* Borda fina para dar brilho de vidro */
+    border-radius: 50px;
+    /* Formato de Pílula (Totalmente arredondado) */
+    padding: 2px 15px;
+    /* Mais fino e elegante */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    position: relative;
+    width: 360px;
+    /* Mais comprido para caber bem o texto */
+    transition: all 0.3s ease;
+}
+
+/* Efeito quando o usuário clica na busca */
+.busca-container:focus-within {
+    background: rgba(18, 71, 43, 0.95);
+    border-color: #ffc107;
+    /* Borda amarela da Univille acende no foco */
+    box-shadow: 0 8px 32px rgba(255, 193, 7, 0.25);
+    transform: translateY(-2px);
+    /* Dá uma leve "levantada" */
+}
+
+/* O campo de input agora é INVISÍVEL, o texto flutua no vidro verde */
+#busca-sala {
+    width: 100%;
+    padding: 14px 10px 14px 35px;
+    border: none;
+    background-color: transparent;
+    /* Pulo do gato: Fundo invisível! */
+    /* Ícone de lupa BRANCO injetado no CSS */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="%23ffffff" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: 5px center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    /* Texto branco */
+    outline: none;
+    letter-spacing: 0.5px;
+}
+
+/* Placeholder (texto de dica) também translúcido */
+#busca-sala::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+}
+
+
+/* ==========================================
+   3. RESULTADOS DA PESQUISA (ESTILO CARDS)
+========================================== */
+#lista-resultados {
+    position: absolute;
+    top: calc(100% + 12px);
+    /* Afasta um pouquinho da pílula */
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    list-style-type: none;
+    border-radius: 16px;
+    /* Arredondado combinando com o tema */
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ... mantenha o restante do código da lista-resultados (os li, hover, etc) como já estava ... */
+.resultados-oculto {
+    display: none !important;
+}
+
+/* Cada item da lista */
+#lista-resultados li {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+#lista-resultados li:last-child {
+    border-bottom: none;
+}
+
+#lista-resultados li:hover {
+    background-color: #f4f8f5;
+    /* Verde muito claro ao passar o rato */
+}
+
+/* Organização visual do ícone e textos na pesquisa */
+.resultado-icone {
+    font-size: 22px;
+    margin-right: 12px;
+    background: #eef2f0;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.resultado-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.resultado-nome {
+    font-size: 14px;
+    font-weight: 800;
+    color: #12472b;
+    /* Verde Univille */
+}
+
+.resultado-detalhe {
+    font-size: 11px;
+    color: #777;
+    font-weight: 600;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+
+/* ==========================================
+   4. PAINEL DE CAMADAS DO MAPA (Canto Superior Direito)
+========================================== */
+/* Injetando o Glassmorphism no menu nativo do Leaflet */
+.leaflet-control-layers {
+    background: rgba(18, 71, 43, 0.75) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: #ffffff !important;
+    padding: 10px 15px !important;
+}
+
+/* Textos do menu de camadas */
+.leaflet-control-layers label {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    margin: 6px 0;
+    color: #ffffff !important;
+}
+
+/* Linha divisória do menu */
+.leaflet-control-layers-separator {
+    border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+    margin: 10px 0 !important;
+}
+
+
+/* ==========================================
+   5. RÓTULOS (TEXTOS E ÍCONES DENTRO DO MAPA)
+========================================== */
+.rotulo-sala {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #ffffff;
+    /* Texto branco */
+    font-weight: 900;
+    font-size: 11px;
+    /* Sombra preta densa para criar contraste em qualquer fundo */
+    text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+    pointer-events: none;
+    /* Deixa o clique "atravessar" para o popup abrir */
+}
+
+/* Remove a setinha em forma de triângulo padrão do Leaflet */
+.rotulo-sala::before {
+    display: none !important;
+}
+
+/* Estilo específico para o ícone de casa de banho ficar grande e sem sombra */
+.rotulo-banheiro {
+    font-size: 20px !important;
+    text-shadow: none !important;
+}
+
+
+/* ==========================================
+   6. POPUPS DE INFORMAÇÃO (GLASSMORPHISM BRANCO)
+========================================== */
+/* A caixa principal do balão */
+.leaflet-popup-content-wrapper {
+    background: rgba(255, 255, 255, 0.85) !important;
+    /* Branco translúcido */
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+    color: #333333 !important;
+    /* Texto escuro para leitura perfeita */
+}
+
+/* O texto e espaçamento interno */
+.leaflet-popup-content {
+    color: #333333 !important;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 15px !important;
+}
+
+/* O título do Popup (Nome da Sala) */
+.leaflet-popup-content h3 {
+    color: #12472b !important;
+    /* Verde Univille para manter a identidade */
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* A setinha (triângulo) que aponta para baixo em direção à sala */
+.leaflet-popup-tip {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* O botão de fechar (X) no canto superior */
+.leaflet-popup-close-button {
+    color: #555555 !important;
+    font-weight: bold !important;
+    padding: 5px !important;
+}
+
+.leaflet-popup-close-button:hover {
+    color: #e74c3c !important;
+    /* Fica vermelho ao passar o rato */
+    background: transparent !important;
+}
+
+/* Linha divisória (hr) dentro do popup */
+.leaflet-popup-content hr {
+    border: none !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    margin: 8px 0 !important;
+}
+
+/* ==========================================
+   7. INTERFACE MOBILE (BOTTOM NAVIGATION & SHEETS)
+========================================== */
+
+/* Esconde a barra inferior e painéis no desktop por padrão */
+.bottom-nav,
+#overlay-mobile,
+.painel-camadas,
+.bottom-sheet-handle {
+    display: none;
+}
+
+@media screen and (max-width: 768px) {
+    /* Exibe a Barra Inferior */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+        z-index: 2000;
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom); /* Suporte a entalhe de tela (Notch) */
+    }
+
+    .nav-btn {
+        background: transparent;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 30%;
+        height: 100%;
+        color: #777;
+        font-weight: 600;
+        font-size: 11px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.2s;
+    }
+
+    .nav-btn.ativo {
+        color: #12472b; /* Verde Univille */
+    }
+
+    .nav-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+        transition: transform 0.2s;
+    }
+
+    .nav-btn.ativo .nav-icon {
+        transform: scale(1.15);
+    }
+
+    /* Oculta os controles originais de camada do Leaflet no mapa */
+    .leaflet-top.leaflet-right {
+        display: none !important; 
+    }
+
+    /* Fundo Escuro quando um painel sobe */
+    #overlay-mobile {
+        display: block;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1500;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+    }
+
+    #overlay-mobile.visivel {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Bottom Sheets (Painéis Deslizantes de Busca e Camadas) */
+    .painel-controle, .painel-camadas {
+        display: block;
+        position: fixed;
+        bottom: -100%; /* Oculto embaixo da tela */
+        left: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -10px 25px rgba(0,0,0,0.2);
+        z-index: 1600;
+        transition: bottom 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        padding: 15px 20px 80px 20px; /* 80px de padding embaixo para não conflitar com a nav bar */
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Ação que faz o painel subir */
+    .painel-controle.aberto, .painel-camadas.aberto {
+        bottom: 0;
+    }
+
+    /* Alça visual no topo do painel para indicar que desliza */
+    .bottom-sheet-handle {
+        display: block;
+        width: 40px;
+        height: 5px;
+        background: #ccc;
+        border-radius: 5px;
+        margin: 0 auto 15px auto;
+    }
+
+    .titulo-painel {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #12472b;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 18px;
+    }
+
+    /* Ajuste visual da busca para combinar com o painel claro */
+    .busca-container {
+        width: 100% !important;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    #busca-sala {
+        color: #333; /* Texto escuro */
+        font-size: 16px;
+        padding: 14px 10px 14px 35px;
+        /* Ícone de lupa escuro */
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="%23555" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+    }
+    
+    #busca-sala::placeholder {
+        color: #888;
+    }
+
+    #lista-resultados {
+        position: static;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        margin-top: 10px;
+        max-height: none; /* Deixa o próprio painel rolar se precisar */
+    }
+
+    #lista-resultados li {
+        padding: 15px 12px;
+    }
+
+    /* Ajuste para o controle de camadas do Leaflet quando movido para o nosso painel */
+    #camadas-container .leaflet-control-layers {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        color: #333 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        width: 100%;
+        padding: 0 !important;
+    }
+
+    #camadas-container .leaflet-control-layers-toggle {
+        display: none !important; /* Esconde o botão quadradinho de camadas do Leaflet */
+    }
+
+    #camadas-container .leaflet-control-layers-list {
+        display: block !important; /* A lista de camadas fica sempre visível no painel */
+    }
+
+    #camadas-container .leaflet-control-layers label {
+        color: #333 !important;
+        text-shadow: none;
+        font-size: 16px;
+        padding: 12px 5px;
+        border-bottom: 1px solid #eaeaea;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    #camadas-container .leaflet-control-layers-separator {
+        border-top: 2px solid #ddd !important;
+        margin: 15px 0 !important;
+    }
+}
+
+/* ==========================================
+   8. SIG PADRÃO OURO (UI/UX PREMIUM)
+========================================== */
+
+/* 8.1 Tela de Carregamento (Splash Screen) */
+#splash-screen {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #12472b; /* Verde Univille */
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+#splash-screen h2 {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin-top: 20px;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+#splash-screen p {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin-top: 5px;
+    opacity: 0.8;
+}
+
+/* Animação do Pulso */
+.loader-pulse {
+    width: 60px;
+    height: 60px;
+    background-color: #ffc107; /* Amarelo Univille */
+    border-radius: 100%;
+    animation: sk-scaleout 1.0s infinite ease-in-out;
+}
+
+@keyframes sk-scaleout {
+    0% { transform: scale(0); }
+    100% {
+        transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+.splash-escondido {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* 8.2 Botão Flutuante de Localização (GPS) */
+.btn-flutuante {
+    position: absolute;
+    bottom: 30px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000; /* Abaixo dos popups e splash, mas acima do mapa */
+    transition: transform 0.2s, background 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-flutuante:active {
+    transform: scale(0.9);
+    background: #f0f0f0;
+}
+
+.btn-flutuante.rastreando {
+    color: #007bff;
+    border-color: #007bff;
+    animation: gps-pulse 2s infinite;
+}
+
+@keyframes gps-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
+/* Ajuste do Botão Flutuante no Mobile (Ficar acima da Bottom Nav) */
+@media screen and (max-width: 768px) {
+    .btn-flutuante {
+        bottom: 90px; /* 70px da nav + 20px de margem */
+    }
+    
+    /* Scroll fluido na lista de pesquisa do mobile */
+    #lista-resultados {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* 8.3 Refinamento dos Controles do Leaflet (Zoom Premium) */
+.leaflet-bar {
+    border: none !important;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+    border-radius: 12px !important;
+    overflow: hidden; /* Mantém os cantos arredondados */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.leaflet-bar a {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #12472b !important;
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+    width: 38px !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    font-size: 18px !important;
+    transition: background 0.2s, color 0.2s;
+    font-weight: 600;
+}
+
+.leaflet-bar a:hover {
+    background: #12472b !important;
+    color: #fff !important;
+}
+
+/* 8.4 Popups Sedosos (Fade in animation) */
+.leaflet-popup {
+    animation: fade-in-up 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 8.5 Mensagem de Erro Amigável */
+.msg-erro-pesquisa {
+    padding: 20px !important;
+    text-align: center;
+    color: #777;
+    font-size: 14px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-style: italic;
+    background: transparent !important;
+    border: none !important;
+    pointer-events: none;
+}
+
+/* ==========================================
+   9. INOVAÇÕES (ANDARES E ROTAS)
+========================================== */
+
+/* 9.1 Seletor de Andares */
+.seletor-andares {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 999;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: opacity 0.3s;
+}
+
+.seletor-andares.oculto {
+    display: none !important;
+}
+
+.btn-andar {
+    background: transparent;
+    border: none;
+    padding: 12px 10px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.btn-andar:last-child {
+    border-bottom: none;
+}
+
+.btn-andar:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.btn-andar.ativo {
+    background: #12472b;
+    color: #fff;
+}
+
+/* Ajuste do seletor no Mobile */
+@media screen and (max-width: 768px) {
+    .seletor-andares {
+        top: auto;
+        bottom: 160px; /* Fica acima do botão de GPS */
+        right: 20px;
+        transform: none;
+    }
+}
+
+/* 9.2 Botão "Como Chegar" no Popup */
+.btn-rota {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: #ffc107; /* Amarelo Univille */
+    color: #12472b;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.btn-rota:hover {
+    background: #e0a800;
+}
+
+.btn-rota:active {
+    transform: scale(0.95);
+}
+
+/* 9.3 Estilo da Linha da Rota (Animação Marcha de Formiga) */
+.linha-rota {
+    stroke-dasharray: 10, 10;
+    animation: ant-march 1s linear infinite;
+}
+
+@keyframes ant-march {
+    to {
+        stroke-dashoffset: -20;
+    }
+}
+
+/* 9.4 Toast de Distância (Exibe a mensagem de metros) */
+.toast-distancia {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #12472b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 3000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+}
+
+.toast-distancia.visivel {
+    opacity: 1;
+    visibility: visible;
+}

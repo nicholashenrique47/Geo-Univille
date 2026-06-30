@@ -1,0 +1,90 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "nome": "Laboratório de Informática 1",
+                "andar": "terreo",
+                "tipo": "Laboratório"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -48.8585,
+                            -26.2440
+                        ],
+                        [
+                            -48.8575,
+                            -26.2440
+                        ],
+                        [
+                            -48.8575,
+                            -26.2445
+                        ],
+                        [
+                            -48.8585,
+                            -26.2445
+                        ],
+                        [
+                            -48.8585,
+                            -26.2440
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "nome": "Sala 204",
+                "andar": "1",
+                "tipo": "Sala de Aula"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -48.8580,
+                            -26.2435
+                        ],
+                        [
+                            -48.8570,
+                            -26.2435
+                        ],
+                        [
+                            -48.8570,
+                            -26.2440
+                        ],
+                        [
+                            -48.8580,
+                            -26.2440
+                        ],
+                        [
+                            -48.8580,
+                            -26.2435
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "nome": "Bebedouro Bloco A",
+                "categoria": "bebedouro",
+                "andar": "terreo"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -48.8578,
+                    -26.2442
+                ]
+            }
+        }
+    ]
+}
