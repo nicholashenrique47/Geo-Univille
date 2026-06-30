@@ -114,7 +114,7 @@ class GrafoRotas {
         for (let noStr of this.adj.keys()) {
             const [lngNo, latNo] = noStr.split(',').map(Number);
             const dist = map.distance([lat, lng], [latNo, lngNo]);
-            if (dist < 12) { // Tolerância reduzida para 12 metros para não fundir ruas paralelas e causar rotas tortas
+            if (dist < 2) { // Tolerância de apenas 2 metros para não distorcer as ruas originais
                 return noStr;
             }
         }
