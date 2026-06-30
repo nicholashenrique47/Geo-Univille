@@ -566,7 +566,26 @@ window.rotaAtual = null;
 
 window.tracarRota = function (destLat, destLng) {
     if (!marcadorGps) {
-        alert("📍 Ative sua localização (botão de alvo ali no canto) primeiro para eu traçar uma rota para você!");
+        alert("📍 GPS Inativo ou em modo de teste: Clique em 'OK' e depois clique no local de partida no mapa (ex: Biblioteca) para traçar a rota.");
+        document.getElementById('map').style.cursor = 'crosshair';
+        
+        map.once('click', function(e) {
+            document.getElementById('map').style.cursor = '';
+            if (window.marcadorTeste) map.removeLayer(window.marcadorTeste);
+            
+            window.marcadorTeste = L.circleMarker(e.latlng, {
+                radius: 8,
+                fillColor: "#ff0000",
+                color: "#ffffff",
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map).bindPopup("Ponto de Partida").openPopup();
+            
+            // Finge que o marcador de teste é o GPS
+            marcadorGps = window.marcadorTeste;
+            window.tracarRota(destLat, destLng);
+        });
         return;
     }
     const startLat = marcadorGps.getLatLng().lat;
