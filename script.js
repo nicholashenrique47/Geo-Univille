@@ -295,26 +295,28 @@ Promise.all([
             }
         }).addTo(grupoBiblioteca);
 
+        const iconeCantina = L.divIcon({
+            html: "<div style='font-size: 26px; text-align: center; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);'>☕</div>",
+            className: "icone-transparente",
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
         // --- DESENHANDO AS CANTINAS ---
         L.geoJSON(cantinas, {
-            style: { color: "#ff4500", weight: 2, fillColor: "#ff4500", fillOpacity: 0.4 },
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, { icon: iconeCantina });
+            },
             onEachFeature: function (feature, layer) {
-                // Adicionando um ícone permanente no mapa para a cantina
-                layer.bindTooltip("☕", {
-                    permanent: true,
-                    direction: "center",
-                    className: "rotulo-sala rotulo-banheiro", // Usa a mesma classe do banheiro que deixa o ícone grande
-                    pane: 'paneRotulosSalas'
-                });
-                
                 layer.on('add', function () {
-                    const latlng = layer.getLatLng ? layer.getLatLng() : layer.getBounds().getCenter();
+                    const latlng = layer.getLatLng();
                     const nome = feature.properties.NOME || 'Cantina';
                     const horario = feature.properties.HORARIO || '';
                     const htmlPopup = `
                     <div style="text-align: center; font-family: Arial;">
                         <h3 style="margin: 0 0 5px 0; color: #12472b;">${nome}</h3>
                         <hr style="border: 1px solid #eee;">
+                        <b>Tipo:</b> Cantina<br>
                         <b>Horário:</b> ${horario}
                         <button class="btn-rota" style="margin-top:10px;" onclick="window.tracarRota(${latlng.lat}, ${latlng.lng}, '${nome}')">📍 Como Chegar</button>
                     </div>
