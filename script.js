@@ -32,6 +32,9 @@ map.getPane('paneRotulosSalas').style.transition = 'opacity 0.3s ease'; // Anima
 const grupoBlocos = L.featureGroup().addTo(map);
 const grupoSalas = L.featureGroup().addTo(map);
 const grupoBanheiros = L.featureGroup().addTo(map);
+const grupoRuas = L.featureGroup().addTo(map);
+const grupoBiblioteca = L.featureGroup().addTo(map);
+const grupoCantinas = L.featureGroup().addTo(map);
 
 const controleCamadas = L.control.layers(
     {
@@ -42,7 +45,10 @@ const controleCamadas = L.control.layers(
     {
         "🏢 Blocos": grupoBlocos,
         "🚪 Salas e Labs": grupoSalas,
-        "🚻 Banheiros": grupoBanheiros
+        "🚻 Banheiros": grupoBanheiros,
+        "🛣️ Ruas": grupoRuas,
+        "📚 Biblioteca": grupoBiblioteca,
+        "🍔 Cantinas": grupoCantinas
     },
     { collapsed: false }
 ).addTo(map);
@@ -77,13 +83,109 @@ function gerenciarZoom() {
 map.on('zoomend', gerenciarZoom);
 
 // ==========================================
+// 3.5 GRAFO PARA ROTEAMENTO DE RUAS
+// ==========================================
+class GrafoRotas {
+    constructor(geojsonRotas) {
+        this.adj = new Map();
+        geojsonRotas.features.forEach(feat => {
+            let lines = [];
+            if (feat.geometry.type === 'LineString') {
+                lines = [feat.geometry.coordinates];
+            } else if (feat.geometry.type === 'MultiLineString') {
+                lines = feat.geometry.coordinates;
+            }
+            lines.forEach(coords => {
+                for (let i = 0; i < coords.length - 1; i++) {
+                    const p1 = coords[i][0].toFixed(6) + ',' + coords[i][1].toFixed(6);
+                    const p2 = coords[i + 1][0].toFixed(6) + ',' + coords[i + 1][1].toFixed(6);
+                    const dist = map.distance([coords[i][1], coords[i][0]], [coords[i + 1][1], coords[i + 1][0]]);
+                    this.addAresta(p1, p2, dist);
+                }
+            });
+        });
+    }
+
+    addAresta(p1, p2, peso) {
+        if (!this.adj.has(p1)) this.adj.set(p1, []);
+        if (!this.adj.has(p2)) this.adj.set(p2, []);
+        this.adj.get(p1).push({ no: p2, peso: peso });
+        this.adj.get(p2).push({ no: p1, peso: peso });
+    }
+
+    encontrarNoMaisProximo(lat, lng) {
+        let menorDist = Infinity;
+        let noMaisProximo = null;
+        for (let noStr of this.adj.keys()) {
+            const [lngNo, latNo] = noStr.split(',').map(Number);
+            const dist = map.distance([lat, lng], [latNo, lngNo]);
+            if (dist < menorDist) {
+                menorDist = dist;
+                noMaisProximo = noStr;
+            }
+        }
+        return noMaisProximo;
+    }
+
+    encontrarCaminhoMaisCurto(inicio, fim) {
+        const distancias = new Map();
+        const anteriores = new Map();
+        const naoVisitados = new Set(this.adj.keys());
+
+        for (let no of this.adj.keys()) {
+            distancias.set(no, Infinity);
+        }
+        distancias.set(inicio, 0);
+
+        while (naoVisitados.size > 0) {
+            let u = null;
+            for (let no of naoVisitados) {
+                if (u === null || distancias.get(no) < distancias.get(u)) {
+                    u = no;
+                }
+            }
+
+            if (distancias.get(u) === Infinity || u === fim) {
+                break;
+            }
+
+            naoVisitados.delete(u);
+
+            for (let vizinho of this.adj.get(u)) {
+                let alt = distancias.get(u) + vizinho.peso;
+                if (alt < distancias.get(vizinho.no)) {
+                    distancias.set(vizinho.no, alt);
+                    anteriores.set(vizinho.no, u);
+                }
+            }
+        }
+
+        const caminho = [];
+        let u = fim;
+        if (anteriores.has(u) || u === inicio) {
+            while (u) {
+                caminho.unshift(u);
+                u = anteriores.get(u);
+            }
+        }
+        return caminho.map(c => {
+            const [lng, lat] = c.split(',').map(Number);
+            return [lat, lng];
+        });
+    }
+}
+
+// ==========================================
 // 4. CARREGAMENTO DOS DADOS E APLICAÇÃO DOS ÍCONES
 // ==========================================
 Promise.all([
-    fetch('./dados_geojson/blocos_univille1.geojson').then(res => res.json()),
-    fetch('./dados_geojson/salas_univille.geojson').then(res => res.json())
+    fetch('./dados/blocos_univille1.geojson').then(res => res.json()),
+    fetch('./dados/salas_univille.geojson').then(res => res.json()),
+    fetch('./dados/RUAS.geojson').then(res => res.json()),
+    fetch('./dados/BIBLIOTECA.geojson').then(res => res.json()),
+    fetch('./dados/CANTINAS.geojson').then(res => res.json())
 ])
-    .then(([blocos, salas]) => {
+    .then(([blocos, salas, ruas, biblioteca, cantinas]) => {
 
         // --- DESENHANDO OS BLOCOS ---
         L.geoJSON(blocos, {
@@ -127,7 +229,7 @@ Promise.all([
                 }
 
                 // Usamos um evento 'add' para pegar o centro real do polígono para a rota
-                layer.on('add', function() {
+                layer.on('add', function () {
                     const centro = layer.getBounds().getCenter();
                     const htmlPopup = `
                     <div style="text-align: center; font-family: Arial;">
@@ -150,6 +252,30 @@ Promise.all([
 
         L.geoJSON(apenasSalas, configVisual).addTo(grupoSalas);
         L.geoJSON(apenasBanheiros, configVisual).addTo(grupoBanheiros);
+
+        // --- DESENHANDO AS RUAS ---
+        L.geoJSON(ruas, {
+            style: { color: "#ffffff", weight: 4, opacity: 0.6 }
+        }).addTo(grupoRuas);
+
+        // --- DESENHANDO A BIBLIOTECA ---
+        L.geoJSON(biblioteca, {
+            style: { color: "#8a2be2", weight: 2, fillColor: "#8a2be2", fillOpacity: 0.4 },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(`<b>Biblioteca</b>`);
+            }
+        }).addTo(grupoBiblioteca);
+
+        // --- DESENHANDO AS CANTINAS ---
+        L.geoJSON(cantinas, {
+            style: { color: "#ff4500", weight: 2, fillColor: "#ff4500", fillOpacity: 0.4 },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(`<b>Cantina</b>`);
+            }
+        }).addTo(grupoCantinas);
+
+        // CONSTRUIR O GRAFO DAS RUAS PARA ROTEAMENTO
+        window.grafoRotas = new GrafoRotas(ruas);
 
         map.fitBounds(grupoBlocos.getBounds());
 
@@ -269,12 +395,12 @@ const overlayMobile = document.getElementById('overlay-mobile');
 
 // Função para fechar qualquer painel aberto
 function fecharPaineis() {
-    if(painelBusca) painelBusca.classList.remove('aberto');
-    if(painelCamadas) painelCamadas.classList.remove('aberto');
-    if(overlayMobile) overlayMobile.classList.remove('visivel');
-    
-    if(btnBusca) btnBusca.classList.remove('ativo');
-    if(btnCamadas) btnCamadas.classList.remove('ativo');
+    if (painelBusca) painelBusca.classList.remove('aberto');
+    if (painelCamadas) painelCamadas.classList.remove('aberto');
+    if (overlayMobile) overlayMobile.classList.remove('visivel');
+
+    if (btnBusca) btnBusca.classList.remove('ativo');
+    if (btnCamadas) btnCamadas.classList.remove('ativo');
 }
 
 // Função para alternar o estado do painel
@@ -290,11 +416,11 @@ function alternarPainel(painel, btn) {
 }
 
 // Atrelando os cliques aos botões da barra inferior
-if(btnBusca) btnBusca.addEventListener('click', () => alternarPainel(painelBusca, btnBusca));
-if(btnCamadas) btnCamadas.addEventListener('click', () => alternarPainel(painelCamadas, btnCamadas));
+if (btnBusca) btnBusca.addEventListener('click', () => alternarPainel(painelBusca, btnBusca));
+if (btnCamadas) btnCamadas.addEventListener('click', () => alternarPainel(painelCamadas, btnCamadas));
 
 // Botão Início: Fecha os painéis e centraliza a câmera
-if(btnInicio) {
+if (btnInicio) {
     btnInicio.addEventListener('click', () => {
         fecharPaineis();
         // Usa as coordenadas de foco originais ou os limites do grupo
@@ -307,17 +433,17 @@ if(btnInicio) {
 }
 
 // Fechar painéis ao clicar na parte escura (overlay) ou na alça
-if(overlayMobile) overlayMobile.addEventListener('click', fecharPaineis);
-if(document.getElementById('handle-busca')) document.getElementById('handle-busca').addEventListener('click', fecharPaineis);
-if(document.getElementById('handle-camadas')) document.getElementById('handle-camadas').addEventListener('click', fecharPaineis);
+if (overlayMobile) overlayMobile.addEventListener('click', fecharPaineis);
+if (document.getElementById('handle-busca')) document.getElementById('handle-busca').addEventListener('click', fecharPaineis);
+if (document.getElementById('handle-camadas')) document.getElementById('handle-camadas').addEventListener('click', fecharPaineis);
 
 // Lógica inteligente para mover o menu de camadas do Leaflet para dentro do painel
 function ajustarControleCamadasMobile() {
     const containerCamadas = document.getElementById('camadas-container');
-    if(!containerCamadas || !controleCamadas) return;
+    if (!containerCamadas || !controleCamadas) return;
 
     const controleElemento = controleCamadas.getContainer();
-    
+
     if (window.innerWidth <= 768) {
         // Celular: Move para dentro do Bottom Sheet de Camadas
         if (!containerCamadas.contains(controleElemento)) {
@@ -353,17 +479,17 @@ if (btnGps) {
 }
 
 // Quando o navegador encontra a localização
-map.on('locationfound', function(e) {
+map.on('locationfound', function (e) {
     btnGps.classList.remove('rastreando');
-    
+
     // Se já havia um marcador antes, remove
     if (marcadorGps) {
         map.removeLayer(marcadorGps);
         map.removeLayer(circuloPrecisaoGps);
     }
-    
+
     const raioDePrecisao = e.accuracy / 2;
-    
+
     // Desenha a bolinha azul pulsante exata do usuário
     marcadorGps = L.circleMarker(e.latlng, {
         radius: 8,
@@ -373,7 +499,7 @@ map.on('locationfound', function(e) {
         opacity: 1,
         fillOpacity: 1
     }).addTo(map);
-    
+
     // Desenha o halo claro em volta mostrando a precisão do GPS
     circuloPrecisaoGps = L.circle(e.latlng, raioDePrecisao, {
         color: '#007bff',
@@ -384,7 +510,7 @@ map.on('locationfound', function(e) {
 });
 
 // Tratamento de falha do GPS
-map.on('locationerror', function(e) {
+map.on('locationerror', function (e) {
     btnGps.classList.remove('rastreando');
     alert("Não foi possível acessar o GPS. Por favor, verifique se a localização está ativada em seu navegador.");
 });
@@ -396,7 +522,7 @@ map.on('locationerror', function(e) {
 // --- 8.1 Rotas em Linha Reta ---
 window.rotaAtual = null;
 
-window.tracarRota = function(destLat, destLng) {
+window.tracarRota = function (destLat, destLng) {
     if (!marcadorGps) {
         alert("📍 Ative sua localização (botão de alvo ali no canto) primeiro para eu traçar uma rota para você!");
         return;
@@ -408,20 +534,47 @@ window.tracarRota = function(destLat, destLng) {
         map.removeLayer(window.rotaAtual);
     }
 
-    window.rotaAtual = L.polyline([
-        [startLat, startLng],
-        [destLat, destLng]
-    ], {
+    let latlngs = [];
+
+    if (window.grafoRotas && window.grafoRotas.adj.size > 0) {
+        // Encontra o nó mais próximo na rua para o início e para o fim
+        const noInicio = window.grafoRotas.encontrarNoMaisProximo(startLat, startLng);
+        const noFim = window.grafoRotas.encontrarNoMaisProximo(destLat, destLng);
+
+        if (noInicio && noFim) {
+            const caminhoGrafo = window.grafoRotas.encontrarCaminhoMaisCurto(noInicio, noFim);
+            if (caminhoGrafo.length > 0) {
+                // Adiciona o ponto real de partida, depois o caminho pelas ruas, e o ponto final
+                latlngs.push([startLat, startLng]);
+                latlngs.push(...caminhoGrafo);
+                latlngs.push([destLat, destLng]);
+            }
+        }
+    }
+
+    // Fallback: se não achar caminho na rua, faz linha reta
+    if (latlngs.length === 0) {
+        latlngs = [
+            [startLat, startLng],
+            [destLat, destLng]
+        ];
+    }
+
+    window.rotaAtual = L.polyline(latlngs, {
         color: '#ffc107', // Amarelo Univille
         weight: 4,
         className: 'linha-rota' // Animação via CSS
     }).addTo(map);
 
-    // Zoom para mostrar a pessoa e a sala
+    // Zoom para mostrar a rota completa
     map.fitBounds(window.rotaAtual.getBounds(), { padding: [50, 50], maxZoom: 20 });
 
-    const dist = map.distance([startLat, startLng], [destLat, destLng]);
-    mostrarToastDistancia(`Caminho direto: ${Math.round(dist)} metros`);
+    // Calcula distância total
+    let dist = 0;
+    for (let i = 0; i < latlngs.length - 1; i++) {
+        dist += map.distance(latlngs[i], latlngs[i + 1]);
+    }
+    mostrarToastDistancia(`Caminho: ${Math.round(dist)} metros`);
 };
 
 function mostrarToastDistancia(msg) {
@@ -455,16 +608,16 @@ andaresBotoes.forEach(btn => {
         // Filtra os dados originais
         const salasFiltradas = {
             type: "FeatureCollection",
-            features: window.salasOriginais.features.filter(f => 
-                f.properties.tipo !== 'Sanitário' && 
+            features: window.salasOriginais.features.filter(f =>
+                f.properties.tipo !== 'Sanitário' &&
                 (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
             )
         };
 
         const banheirosFiltrados = {
             type: "FeatureCollection",
-            features: window.salasOriginais.features.filter(f => 
-                f.properties.tipo === 'Sanitário' && 
+            features: window.salasOriginais.features.filter(f =>
+                f.properties.tipo === 'Sanitário' &&
                 (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
             )
         };
@@ -484,4 +637,4 @@ if ('serviceWorker' in navigator) {
             console.log('Falha ao registrar o Service Worker: ', erro);
         });
     });
-}
+}
