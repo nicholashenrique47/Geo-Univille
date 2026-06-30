@@ -1,12 +1,15 @@
-const CACHE_NAME = 'geo-univille-v1';
+const CACHE_NAME = 'geo-univille-v2';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './script.js',
     './manifest.json',
-    './dados_geojson/blocos_univille1.geojson',
-    './dados_geojson/salas_univille.geojson',
+    './dados/blocos_univille1.geojson',
+    './dados/salas_univille.geojson',
+    './dados/RUAS.geojson',
+    './dados/BIBLIOTECA.geojson',
+    './dados/CANTINAS.geojson',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
