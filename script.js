@@ -48,7 +48,7 @@ const controleCamadas = L.control.layers(
         "🚻 Banheiros": grupoBanheiros,
         "🛣️ Ruas": grupoRuas,
         "📚 Biblioteca": grupoBiblioteca,
-        "🍔 Cantinas": grupoCantinas
+        "☕ Cantinas": grupoCantinas
     },
     { collapsed: false }
 ).addTo(map);
@@ -299,6 +299,14 @@ Promise.all([
         L.geoJSON(cantinas, {
             style: { color: "#ff4500", weight: 2, fillColor: "#ff4500", fillOpacity: 0.4 },
             onEachFeature: function (feature, layer) {
+                // Adicionando um ícone permanente no mapa para a cantina
+                layer.bindTooltip("☕", {
+                    permanent: true,
+                    direction: "center",
+                    className: "rotulo-sala rotulo-banheiro", // Usa a mesma classe do banheiro que deixa o ícone grande
+                    pane: 'paneRotulosSalas'
+                });
+                
                 layer.on('add', function () {
                     const latlng = layer.getLatLng ? layer.getLatLng() : layer.getBounds().getCenter();
                     const nome = feature.properties.NOME || 'Cantina';
@@ -480,7 +488,7 @@ function adicionarResultadoBusca(nome, detalhe, tipo, layer) {
     else if (tipo === 'LAB') iconeStr = '💻';
     else if (tipo === 'Sala de Aula') iconeStr = '🚪';
     else if (tipo === 'Biblioteca') iconeStr = '📚';
-    else if (tipo === 'Cantina') iconeStr = '🍔';
+    else if (tipo === 'Cantina') iconeStr = '☕';
 
     li.innerHTML = `
         <span class="resultado-icone">${iconeStr}</span>
