@@ -532,6 +532,35 @@ html {
         color: #888;
     }
 
+    /* Ajuste visual do painel de rotas duplo no mobile */
+    .rotas-container {
+        width: 100% !important;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .rotas-container #input-origem, .rotas-container #input-destino {
+        color: #333; /* Texto escuro no painel branco do mobile */
+    }
+    
+    .rotas-container #input-origem::placeholder, .rotas-container #input-destino::placeholder {
+        color: #888;
+    }
+    
+    .rotas-container .input-rota-wrapper {
+        background: #f8f9fa;
+        border: 1px solid #eee;
+    }
+    
+    .rotas-container .btn-icone {
+        color: #555;
+    }
+    
+    .rotas-container .btn-icone:hover {
+        background: #f0f0f0;
+    }
+
     #lista-resultados {
         position: static;
         width: 100%;
