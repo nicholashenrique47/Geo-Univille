@@ -16,6 +16,7 @@ const ASSETS = [
 
 // Instalação: Baixa tudo para o cache
 self.addEventListener('install', (evento) => {
+    self.skipWaiting(); // Força a instalação imediata
     evento.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
@@ -34,6 +35,8 @@ self.addEventListener('activate', (evento) => {
                     }
                 })
             );
+        }).then(() => {
+            return self.clients.claim(); // Assume o controle das páginas abertas imediatamente
         })
     );
 });
