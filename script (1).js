@@ -98,19 +98,19 @@ class GrafoRotas {
             lines.forEach(coords => {
                 for (let i = 0; i < coords.length - 1; i++) {
                     const p1 = coords[i][0].toFixed(6) + ',' + coords[i][1].toFixed(6);
-                    const p2 = coords[i+1][0].toFixed(6) + ',' + coords[i+1][1].toFixed(6);
-                    const dist = map.distance([coords[i][1], coords[i][0]], [coords[i+1][1], coords[i+1][0]]);
+                    const p2 = coords[i + 1][0].toFixed(6) + ',' + coords[i + 1][1].toFixed(6);
+                    const dist = map.distance([coords[i][1], coords[i][0]], [coords[i + 1][1], coords[i + 1][0]]);
                     this.addAresta(p1, p2, dist);
                 }
             });
         });
     }
-    
+
     addAresta(p1, p2, peso) {
         if (!this.adj.has(p1)) this.adj.set(p1, []);
         if (!this.adj.has(p2)) this.adj.set(p2, []);
         this.adj.get(p1).push({ no: p2, peso: peso });
-        this.adj.get(p2).push({ no: p1, peso: peso }); 
+        this.adj.get(p2).push({ no: p1, peso: peso });
     }
 
     encontrarNoMaisProximo(lat, lng) {
@@ -131,7 +131,7 @@ class GrafoRotas {
         const distancias = new Map();
         const anteriores = new Map();
         const naoVisitados = new Set(this.adj.keys());
-        
+
         for (let no of this.adj.keys()) {
             distancias.set(no, Infinity);
         }
@@ -229,7 +229,7 @@ Promise.all([
                 }
 
                 // Usamos um evento 'add' para pegar o centro real do polígono para a rota
-                layer.on('add', function() {
+                layer.on('add', function () {
                     const centro = layer.getBounds().getCenter();
                     const htmlPopup = `
                     <div style="text-align: center; font-family: Arial;">
@@ -257,7 +257,7 @@ Promise.all([
         L.geoJSON(ruas, {
             style: { color: "#ffffff", weight: 4, opacity: 0.6 }
         }).addTo(grupoRuas);
-        
+
         // --- DESENHANDO A BIBLIOTECA ---
         L.geoJSON(biblioteca, {
             style: { color: "#8a2be2", weight: 2, fillColor: "#8a2be2", fillOpacity: 0.4 },
@@ -395,12 +395,12 @@ const overlayMobile = document.getElementById('overlay-mobile');
 
 // Função para fechar qualquer painel aberto
 function fecharPaineis() {
-    if(painelBusca) painelBusca.classList.remove('aberto');
-    if(painelCamadas) painelCamadas.classList.remove('aberto');
-    if(overlayMobile) overlayMobile.classList.remove('visivel');
-    
-    if(btnBusca) btnBusca.classList.remove('ativo');
-    if(btnCamadas) btnCamadas.classList.remove('ativo');
+    if (painelBusca) painelBusca.classList.remove('aberto');
+    if (painelCamadas) painelCamadas.classList.remove('aberto');
+    if (overlayMobile) overlayMobile.classList.remove('visivel');
+
+    if (btnBusca) btnBusca.classList.remove('ativo');
+    if (btnCamadas) btnCamadas.classList.remove('ativo');
 }
 
 // Função para alternar o estado do painel
@@ -416,11 +416,11 @@ function alternarPainel(painel, btn) {
 }
 
 // Atrelando os cliques aos botões da barra inferior
-if(btnBusca) btnBusca.addEventListener('click', () => alternarPainel(painelBusca, btnBusca));
-if(btnCamadas) btnCamadas.addEventListener('click', () => alternarPainel(painelCamadas, btnCamadas));
+if (btnBusca) btnBusca.addEventListener('click', () => alternarPainel(painelBusca, btnBusca));
+if (btnCamadas) btnCamadas.addEventListener('click', () => alternarPainel(painelCamadas, btnCamadas));
 
 // Botão Início: Fecha os painéis e centraliza a câmera
-if(btnInicio) {
+if (btnInicio) {
     btnInicio.addEventListener('click', () => {
         fecharPaineis();
         // Usa as coordenadas de foco originais ou os limites do grupo
@@ -433,17 +433,17 @@ if(btnInicio) {
 }
 
 // Fechar painéis ao clicar na parte escura (overlay) ou na alça
-if(overlayMobile) overlayMobile.addEventListener('click', fecharPaineis);
-if(document.getElementById('handle-busca')) document.getElementById('handle-busca').addEventListener('click', fecharPaineis);
-if(document.getElementById('handle-camadas')) document.getElementById('handle-camadas').addEventListener('click', fecharPaineis);
+if (overlayMobile) overlayMobile.addEventListener('click', fecharPaineis);
+if (document.getElementById('handle-busca')) document.getElementById('handle-busca').addEventListener('click', fecharPaineis);
+if (document.getElementById('handle-camadas')) document.getElementById('handle-camadas').addEventListener('click', fecharPaineis);
 
 // Lógica inteligente para mover o menu de camadas do Leaflet para dentro do painel
 function ajustarControleCamadasMobile() {
     const containerCamadas = document.getElementById('camadas-container');
-    if(!containerCamadas || !controleCamadas) return;
+    if (!containerCamadas || !controleCamadas) return;
 
     const controleElemento = controleCamadas.getContainer();
-    
+
     if (window.innerWidth <= 768) {
         // Celular: Move para dentro do Bottom Sheet de Camadas
         if (!containerCamadas.contains(controleElemento)) {
@@ -479,17 +479,17 @@ if (btnGps) {
 }
 
 // Quando o navegador encontra a localização
-map.on('locationfound', function(e) {
+map.on('locationfound', function (e) {
     btnGps.classList.remove('rastreando');
-    
+
     // Se já havia um marcador antes, remove
     if (marcadorGps) {
         map.removeLayer(marcadorGps);
         map.removeLayer(circuloPrecisaoGps);
     }
-    
+
     const raioDePrecisao = e.accuracy / 2;
-    
+
     // Desenha a bolinha azul pulsante exata do usuário
     marcadorGps = L.circleMarker(e.latlng, {
         radius: 8,
@@ -499,7 +499,7 @@ map.on('locationfound', function(e) {
         opacity: 1,
         fillOpacity: 1
     }).addTo(map);
-    
+
     // Desenha o halo claro em volta mostrando a precisão do GPS
     circuloPrecisaoGps = L.circle(e.latlng, raioDePrecisao, {
         color: '#007bff',
@@ -510,7 +510,7 @@ map.on('locationfound', function(e) {
 });
 
 // Tratamento de falha do GPS
-map.on('locationerror', function(e) {
+map.on('locationerror', function (e) {
     btnGps.classList.remove('rastreando');
     alert("Não foi possível acessar o GPS. Por favor, verifique se a localização está ativada em seu navegador.");
 });
@@ -522,7 +522,7 @@ map.on('locationerror', function(e) {
 // --- 8.1 Rotas em Linha Reta ---
 window.rotaAtual = null;
 
-window.tracarRota = function(destLat, destLng) {
+window.tracarRota = function (destLat, destLng) {
     if (!marcadorGps) {
         alert("📍 Ative sua localização (botão de alvo ali no canto) primeiro para eu traçar uma rota para você!");
         return;
@@ -551,7 +551,7 @@ window.tracarRota = function(destLat, destLng) {
             }
         }
     }
-    
+
     // Fallback: se não achar caminho na rua, faz linha reta
     if (latlngs.length === 0) {
         latlngs = [
@@ -572,7 +572,7 @@ window.tracarRota = function(destLat, destLng) {
     // Calcula distância total
     let dist = 0;
     for (let i = 0; i < latlngs.length - 1; i++) {
-        dist += map.distance(latlngs[i], latlngs[i+1]);
+        dist += map.distance(latlngs[i], latlngs[i + 1]);
     }
     mostrarToastDistancia(`Caminho: ${Math.round(dist)} metros`);
 };
@@ -608,16 +608,16 @@ andaresBotoes.forEach(btn => {
         // Filtra os dados originais
         const salasFiltradas = {
             type: "FeatureCollection",
-            features: window.salasOriginais.features.filter(f => 
-                f.properties.tipo !== 'Sanitário' && 
+            features: window.salasOriginais.features.filter(f =>
+                f.properties.tipo !== 'Sanitário' &&
                 (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
             )
         };
 
         const banheirosFiltrados = {
             type: "FeatureCollection",
-            features: window.salasOriginais.features.filter(f => 
-                f.properties.tipo === 'Sanitário' && 
+            features: window.salasOriginais.features.filter(f =>
+                f.properties.tipo === 'Sanitário' &&
                 (andarSelecionado === 'todos' || f.properties.andar === andarSelecionado)
             )
         };
@@ -637,4 +637,4 @@ if ('serviceWorker' in navigator) {
             console.log('Falha ao registrar o Service Worker: ', erro);
         });
     });
-}
+}
